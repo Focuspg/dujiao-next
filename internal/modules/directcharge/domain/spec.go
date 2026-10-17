@@ -36,7 +36,7 @@ type Spec struct {
 	UpdatedAt        time.Time `json:"updated_at"`
 }
 
-func (Spec) TableName() string { return "recharge_specs" }
+func (Spec) TableName() string { return "directcharge_specs" }
 
 // AllowsCredentialMode 规格是否接受该凭据模式；未配置时只接受 session
 func (s *Spec) AllowsCredentialMode(mode string) bool {

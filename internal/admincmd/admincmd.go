@@ -42,7 +42,7 @@ func Usage() {
                                                           重置管理员密码（超管忘记密码恢复用）
                                                           不传 --password 时从 stdin 隐藏读入两次确认
   dujiao-api admin zovocard-check [--product gpt] [--session-file <path>]
-                                                          用 recharge.zovocard 配置检查 ZovoCard 接口连通性；
+                                                          用 direct_charge.zovocard 配置检查 ZovoCard 接口连通性；
                                                           传 --session-file 时额外执行一次账号预检（不下单、不扣款）`)
 }
 

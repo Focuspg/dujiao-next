@@ -19,8 +19,8 @@ const (
 // Attempt 一次上游直充尝试。client_request_id 与幂等键在落库时固定，之后任何重试都沿用。
 type Attempt struct {
 	ID              uint   `gorm:"primarykey" json:"id"`
-	TaskID          uint   `gorm:"uniqueIndex:idx_recharge_attempt_task_no;not null" json:"task_id"`
-	AttemptNo       int    `gorm:"uniqueIndex:idx_recharge_attempt_task_no;not null" json:"attempt_no"`
+	TaskID          uint   `gorm:"uniqueIndex:idx_directcharge_attempt_task_no;not null" json:"task_id"`
+	AttemptNo       int    `gorm:"uniqueIndex:idx_directcharge_attempt_task_no;not null" json:"attempt_no"`
 	Supplier        string `gorm:"type:varchar(32);not null" json:"supplier"`
 	ClientRequestID string `gorm:"type:varchar(80);uniqueIndex;not null" json:"client_request_id"`
 	IdempotencyKey  string `gorm:"type:varchar(80);not null" json:"-"`
@@ -48,7 +48,7 @@ type Attempt struct {
 	UpdatedAt         time.Time  `json:"updated_at"`
 }
 
-func (Attempt) TableName() string { return "recharge_attempts" }
+func (Attempt) TableName() string { return "directcharge_attempts" }
 
 // IsOpen 尝试是否仍可能在上游产生扣款（不能并行新建尝试）
 func (a *Attempt) IsOpen() bool {

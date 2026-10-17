@@ -1,5 +1,5 @@
 // Package vault 负责用户凭据与预检令牌的加密、解密，以及目标账号指纹计算。
-// 主密钥来自配置文件或环境变量（recharge.vault_key），与业务数据库分开保存。
+// 主密钥来自配置文件或环境变量（direct_charge.vault_key），与业务数据库分开保存。
 package vault
 
 import (
@@ -43,16 +43,16 @@ func New(vaultKey, fingerprintKey string) (*Vault, error) {
 	vaultKey = strings.TrimSpace(vaultKey)
 	fingerprintKey = strings.TrimSpace(fingerprintKey)
 	if len(vaultKey) < minSecretLength {
-		return nil, errors.New("vault: recharge.vault_key must be at least 16 characters")
+		return nil, errors.New("vault: direct_charge.vault_key must be at least 16 characters")
 	}
 	if len(fingerprintKey) < minSecretLength {
-		return nil, errors.New("vault: recharge.fingerprint_key must be at least 16 characters")
+		return nil, errors.New("vault: direct_charge.fingerprint_key must be at least 16 characters")
 	}
 	if vaultKey == fingerprintKey {
 		return nil, errors.New("vault: vault_key and fingerprint_key must differ")
 	}
 	return &Vault{
-		keys:           map[int][]byte{CurrentKeyVersion: appcrypto.DeriveKey("recharge-vault:" + vaultKey)},
+		keys:           map[int][]byte{CurrentKeyVersion: appcrypto.DeriveKey("directcharge-vault:" + vaultKey)},
 		fingerprintKey: []byte(fingerprintKey),
 	}, nil
 }

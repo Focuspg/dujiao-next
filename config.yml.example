@@ -191,7 +191,7 @@ web:
   admin_path: "/admin"
 
 # 账号代充（Session 直充，对接 ZovoCard 开放 API）
-recharge:
+direct_charge:
   enabled: false
   # 上游请求号前缀（只允许字母数字），测试库与生产库请使用不同值
   site_prefix: "s"

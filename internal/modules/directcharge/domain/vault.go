@@ -15,7 +15,7 @@ type Credential struct {
 	CreatedAt   time.Time
 }
 
-func (Credential) TableName() string { return "recharge_credentials" }
+func (Credential) TableName() string { return "directcharge_credentials" }
 
 // Usable 凭据是否仍可解密使用
 func (c *Credential) Usable(now time.Time) bool {
@@ -52,7 +52,7 @@ type Preflight struct {
 	CreatedAt          time.Time  `json:"created_at"`
 }
 
-func (Preflight) TableName() string { return "recharge_preflights" }
+func (Preflight) TableName() string { return "directcharge_preflights" }
 
 // 回调收件箱处理状态
 const (
@@ -65,8 +65,8 @@ const (
 // WebhookEvent 上游回调收件箱：先落库再快速返回 2xx，由后台按查单结果推进状态。
 type WebhookEvent struct {
 	ID              uint       `gorm:"primarykey" json:"id"`
-	Source          string     `gorm:"type:varchar(32);uniqueIndex:idx_recharge_event_source_key;not null" json:"source"`
-	DedupKey        string     `gorm:"type:varchar(191);uniqueIndex:idx_recharge_event_source_key;not null" json:"dedup_key"`
+	Source          string     `gorm:"type:varchar(32);uniqueIndex:idx_directcharge_event_source_key;not null" json:"source"`
+	DedupKey        string     `gorm:"type:varchar(191);uniqueIndex:idx_directcharge_event_source_key;not null" json:"dedup_key"`
 	EventType       string     `gorm:"type:varchar(64);not null;default:''" json:"event_type"`
 	BodyHash        string     `gorm:"type:varchar(64);not null" json:"body_hash"`
 	UpstreamOrderID int64      `gorm:"index;not null;default:0" json:"upstream_order_id"`
@@ -79,4 +79,4 @@ type WebhookEvent struct {
 	ProcessedAt     *time.Time `json:"processed_at,omitempty"`
 }
 
-func (WebhookEvent) TableName() string { return "recharge_webhook_events" }
+func (WebhookEvent) TableName() string { return "directcharge_webhook_events" }

@@ -24,7 +24,7 @@ const (
 )
 
 // ErrTransitionNotAllowed 状态迁移不被允许
-var ErrTransitionNotAllowed = errors.New("recharge: task transition not allowed")
+var ErrTransitionNotAllowed = errors.New("directcharge: task transition not allowed")
 
 var taskTransitions = map[string][]string{
 	TaskAwaitingPayment:   {TaskReady, TaskClosed, TaskReview},
@@ -117,7 +117,7 @@ type Task struct {
 	UpdatedAt     time.Time  `gorm:"index" json:"updated_at"`
 }
 
-func (Task) TableName() string { return "recharge_tasks" }
+func (Task) TableName() string { return "directcharge_tasks" }
 
 // AccountLock 目标账号占用。fingerprint 唯一，保证同一账号跨用户只有一个进行中的任务。
 type AccountLock struct {
@@ -127,7 +127,7 @@ type AccountLock struct {
 	CreatedAt          time.Time `gorm:"not null"`
 }
 
-func (AccountLock) TableName() string { return "recharge_account_locks" }
+func (AccountLock) TableName() string { return "directcharge_account_locks" }
 
 // TaskLog 任务状态变化与重试的审计记录
 type TaskLog struct {
@@ -140,4 +140,4 @@ type TaskLog struct {
 	CreatedAt  time.Time `gorm:"index" json:"created_at"`
 }
 
-func (TaskLog) TableName() string { return "recharge_task_logs" }
+func (TaskLog) TableName() string { return "directcharge_task_logs" }

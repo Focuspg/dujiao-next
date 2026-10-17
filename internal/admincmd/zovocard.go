@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/dujiao-next/internal/config"
-	"github.com/dujiao-next/internal/modules/recharge/infrastructure/zovocard"
+	"github.com/dujiao-next/internal/modules/directcharge/infrastructure/zovocard"
 )
 
 // zovocardCheck 联调检查：余额、套餐可售情况，以及可选的一次账号预检。
@@ -18,7 +18,7 @@ func zovocardCheck(cfg *config.Config, product, sessionFile string) {
 		fmt.Fprintln(os.Stderr, "config not loaded")
 		os.Exit(1)
 	}
-	zc := cfg.Recharge.ZovoCard
+	zc := cfg.DirectCharge.ZovoCard
 	if product == "" {
 		product = zovocard.ProductGPT
 	}
