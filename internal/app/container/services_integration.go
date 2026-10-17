@@ -1,6 +1,8 @@
 package container
 
 import (
+	"time"
+
 	catalogmappingbootstrap "github.com/dujiao-next/internal/bootstrap/catalogmapping"
 	telegrambroadcast "github.com/dujiao-next/internal/bootstrap/telegrambroadcast"
 	"github.com/dujiao-next/internal/logger"
@@ -11,6 +13,11 @@ import (
 	localfilestore "github.com/dujiao-next/internal/modules/content/infrastructure/filestore/local"
 	contentgormstore "github.com/dujiao-next/internal/modules/content/infrastructure/gormstore"
 	dashboardapp "github.com/dujiao-next/internal/modules/dashboard/application"
+	directchargeapp "github.com/dujiao-next/internal/modules/directcharge/application"
+	directchargeorder "github.com/dujiao-next/internal/modules/directcharge/infrastructure/orderadapter"
+	directchargeupstream "github.com/dujiao-next/internal/modules/directcharge/infrastructure/upstream"
+	directchargevault "github.com/dujiao-next/internal/modules/directcharge/infrastructure/vault"
+	"github.com/dujiao-next/internal/modules/directcharge/infrastructure/zovocard"
 	downstreamcallbackapp "github.com/dujiao-next/internal/modules/downstreamcallback/application"
 	downstreamcallbackcontract "github.com/dujiao-next/internal/modules/downstreamcallback/contract"
 	downstreamcallbackclient "github.com/dujiao-next/internal/modules/downstreamcallback/infrastructure/callbackclient"
@@ -125,6 +132,7 @@ func (c *Container) initIntegrationServices() {
 		BotNotifier:        c.FulfillmentService,
 		Notifications:      procurementnotification.New(c.NotificationService),
 	})
+	c.DirectChargeService = c.newDirectChargeService()
 	c.ReconciliationService = reconciliationapp.NewService(reconciliationapp.Options{
 		Jobs: c.ReconciliationJobRepo, Items: c.ReconciliationItemRepo,
 		Procurements:  reconciliationprocurement.New(c.ProcurementOrderRepo),
@@ -140,4 +148,37 @@ func (c *Container) initIntegrationServices() {
 		telegrambroadcast.NewDispatcher(c.QueueClient),
 		telegramNotifyService,
 	)
+}
+
+// newDirectChargeService 装配账号代充。未启用或配置不完整时返回不可用的服务（接口返回“暂不可用”），不影响其它功能启动。
+func (c *Container) newDirectChargeService() *directchargeapp.Service {
+	cfg := c.Config.DirectCharge
+	options := directchargeapp.Options{
+		Store:         c.DirectChargeStore,
+		PreflightTTL:  time.Duration(cfg.PreflightTTLMinutes) * time.Minute,
+		CredentialTTL: time.Duration(cfg.CredentialTTLMinutes) * time.Minute,
+	}
+	if !cfg.Enabled {
+		return directchargeapp.NewService(options)
+	}
+	vault, err := directchargevault.New(cfg.VaultKey, cfg.FingerprintKey)
+	if err != nil {
+		logger.Errorw("directcharge_disabled_invalid_config", "error", err)
+		return directchargeapp.NewService(options)
+	}
+	client, err := zovocard.New(zovocard.Config{
+		BaseURL: cfg.ZovoCard.BaseURL,
+		APIKey:  cfg.ZovoCard.APIKey,
+		AppID:   cfg.ZovoCard.AppID,
+		Timeout: time.Duration(cfg.ZovoCard.TimeoutSeconds) * time.Second,
+	})
+	if err != nil {
+		logger.Errorw("directcharge_disabled_invalid_config", "error", err)
+		return directchargeapp.NewService(options)
+	}
+	options.Enabled = true
+	options.Vault = vault
+	options.Upstream = directchargeupstream.New(client)
+	options.Orders = directchargeorder.New(c.OrderService, c.OrderStore)
+	return directchargeapp.NewService(options)
 }

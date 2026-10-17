@@ -2,6 +2,7 @@
 package domain
 
 import (
+	"strings"
 	"time"
 
 	"github.com/dujiao-next/internal/shared/jsonslice"
@@ -22,6 +23,8 @@ type Spec struct {
 	PaymentCountry  string            `gorm:"type:varchar(8);not null;default:''" json:"payment_country"`
 	PaymentCurrency string            `gorm:"type:varchar(8);not null;default:''" json:"payment_currency"`
 	CredentialModes jsonslice.Strings `gorm:"type:json" json:"credential_modes"`
+	// AllowedCurrentPlans 允许购买的目标账号当前套餐；未配置时只允许 free（首开）
+	AllowedCurrentPlans jsonslice.Strings `gorm:"type:json" json:"allowed_current_plans"`
 	// CardID 用于支付的上游卡 ID（只用 card_id，不用 raw_card）
 	CardID int64 `gorm:"not null;default:0" json:"card_id"`
 	// MaxCostUsdMinor 单笔上游成本上限（订阅实付折美元 + 服务费，美分）；0 表示不限制
@@ -48,6 +51,23 @@ func (s *Spec) AllowsCredentialMode(mode string) bool {
 	}
 	for _, m := range s.CredentialModes {
 		if m == mode {
+			return true
+		}
+	}
+	return false
+}
+
+// AllowsCurrentPlan 目标账号当前套餐是否允许购买该规格
+func (s *Spec) AllowsCurrentPlan(plan string) bool {
+	if s == nil {
+		return false
+	}
+	plan = strings.ToLower(strings.TrimSpace(plan))
+	if len(s.AllowedCurrentPlans) == 0 {
+		return plan == "free"
+	}
+	for _, p := range s.AllowedCurrentPlans {
+		if strings.ToLower(strings.TrimSpace(p)) == plan {
 			return true
 		}
 	}

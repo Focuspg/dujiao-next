@@ -79,6 +79,8 @@
           </div>
         </div>
 
+        <DirectChargeStatus v-if="isDirectChargeOrder" :order-no="order.order_no" :order-status="order.status" />
+
         <div v-if="order.children && order.children.length > 0"
           class="rounded-2xl border bg-card shadow-sm p-6">
           <h2 class="text-lg font-bold mb-4">{{ t('orderDetail.childOrdersTitle') }}</h2>
@@ -444,11 +446,12 @@ import EmptyState from '../components/EmptyState.vue'
 import BreadcrumbNav from '../components/BreadcrumbNav.vue'
 import SmartImage from '../components/SmartImage.vue'
 import { useOrderDetail } from '../composables/useOrderDetail'
+import DirectChargeStatus from '../components/directcharge/DirectChargeStatus.vue'
 
 const { t } = useI18n()
 
 const {
-  loading, order, debouncedLoadOrder, cancelOrder,
+  loading, order, isDirectChargeOrder, debouncedLoadOrder, cancelOrder,
   statusLabel, statusVariant, fulfillmentTypeLabelText, fulfillmentStatusLabelText,
   formatDate, getLocalizedText, formatMoney, formatDiscountMoney, hasDiscountAmount, hasAmount,
   refundReasonText, showRefundRecordsCard, refundRecords, showTimeCard,

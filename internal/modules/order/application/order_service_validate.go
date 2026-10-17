@@ -48,6 +48,12 @@ func (s *OrderService) buildOrderResult(input orderCreateParams) (*orderBuildRes
 	if len(mergedItems) == 0 {
 		return nil, ErrInvalidOrderItem
 	}
+	if input.DirectCharge {
+		if len(mergedItems) != 1 || mergedItems[0].Quantity != 1 || resellerOrder || input.IsGuest ||
+			strings.TrimSpace(input.CouponCode) != "" || strings.TrimSpace(input.AffiliateCode) != "" {
+			return nil, ErrDirectChargeOrderInvalid
+		}
+	}
 
 	var plans []childOrderPlan
 	var orderItems []orderdomain.OrderItem
@@ -192,8 +198,13 @@ func (s *OrderService) buildOrderResult(input orderCreateParams) (*orderBuildRes
 		if fulfillmentType == "" {
 			fulfillmentType = constants.FulfillmentTypeManual
 		}
-		if fulfillmentType != constants.FulfillmentTypeManual && fulfillmentType != constants.FulfillmentTypeAuto && fulfillmentType != constants.FulfillmentTypeUpstream {
+		if fulfillmentType != constants.FulfillmentTypeManual && fulfillmentType != constants.FulfillmentTypeAuto &&
+			fulfillmentType != constants.FulfillmentTypeUpstream && fulfillmentType != constants.FulfillmentTypeDirectCharge {
 			return nil, ErrFulfillmentInvalid
+		}
+		// 代充商品必须经代充流程（先预检账号）下单；代充流程也只能买代充商品
+		if (fulfillmentType == constants.FulfillmentTypeDirectCharge) != input.DirectCharge {
+			return nil, ErrDirectChargeOrderInvalid
 		}
 		if fulfillmentType == constants.FulfillmentTypeManual &&
 			productdomain.ShouldEnforceManualSKUStock(product, sku) &&

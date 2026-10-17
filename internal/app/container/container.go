@@ -31,6 +31,8 @@ import (
 	coupongormstore "github.com/dujiao-next/internal/modules/coupon/infrastructure/gormstore"
 	dashboardapp "github.com/dujiao-next/internal/modules/dashboard/application"
 	dashboardcontract "github.com/dujiao-next/internal/modules/dashboard/contract"
+	directchargeapp "github.com/dujiao-next/internal/modules/directcharge/application"
+	directchargegormstore "github.com/dujiao-next/internal/modules/directcharge/infrastructure/gormstore"
 	downstreamcallbackapp "github.com/dujiao-next/internal/modules/downstreamcallback/application"
 	downstreamcallbackcontract "github.com/dujiao-next/internal/modules/downstreamcallback/contract"
 	fulfillmentapp "github.com/dujiao-next/internal/modules/fulfillment/application"
@@ -121,6 +123,7 @@ type Container struct {
 	ProductMappingRepo     *mappinggormstore.MappingStore
 	SKUMappingRepo         *mappinggormstore.SKUMappingStore
 	ProcurementOrderRepo   *procurementgormstore.Store
+	DirectChargeStore      *directchargegormstore.Store
 	DownstreamOrderRefRepo downstreamcallbackcontract.Repository
 	ReconciliationJobRepo  reconciliationcontract.JobRepository
 	ReconciliationItemRepo reconciliationcontract.ItemRepository
@@ -184,6 +187,7 @@ type Container struct {
 	SiteConnectionService         *siteconnectionapp.Service
 	ProductMappingService         *mappingapp.Service
 	ProcurementOrderService       *procurementapp.Service
+	DirectChargeService           *directchargeapp.Service
 	DownstreamCallbackService     *downstreamcallbackapp.Service
 	ReconciliationService         *reconciliationapp.Service
 	ChannelClientService          *channelclientapp.Service

@@ -38,6 +38,7 @@ var (
 	ErrQueueUnavailable           = errors.New("queue unavailable")
 	ErrResellerProductNotListed   = productcontract.ErrResellerProductNotListed
 	ErrResellerCouponNotAllowed   = errors.New("reseller coupon not allowed")
+	ErrDirectChargeOrderInvalid   = errors.New("direct charge order invalid")
 	ErrResellerPriceBelowBase     = resellercontract.ErrPriceBelowBase
 	ErrResellerMarkupExceeded     = resellercontract.ErrMarkupExceeded
 	ErrResellerPricingModeInvalid = resellercontract.ErrPricingModeInvalid

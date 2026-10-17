@@ -171,7 +171,8 @@
     },
     "fulfillmentType": {
       "manual": "人工交付",
-      "auto": "自动交付"
+      "auto": "自动交付",
+      "direct_charge": "账号代充"
     },
     "filter": "筛选",
     "closeFilter": "关闭筛选",
@@ -1738,5 +1739,67 @@
     "label": "购买身份",
     "member": "会员购买",
     "guest": "游客可购"
+  },
+  "directCharge": {
+    "title": "充值账号",
+    "intro": "提交要充值的账号凭据，系统会先验证账号和价格，确认无误后再付款。",
+    "modeLabel": "凭据类型",
+    "modes": {
+      "session": "Session",
+      "access_token": "Access Token"
+    },
+    "credentialLabel": "账号凭据",
+    "credentialPlaceholder": "粘贴凭据内容，仅用于本次充值",
+    "credentialHint": {
+      "session": "登录 chatgpt.com 后，复制名为 __Secure-next-auth.session-token 的 Cookie 值，或包含 sessionToken 的完整 JSON。",
+      "access_token": "复制登录 chatgpt.com 后获取的 Access Token（以 eyJ 开头）。Access Token 有效期较短，请尽快完成付款。"
+    },
+    "privacy": "凭据加密保存，充值完成或订单关闭后销毁；本站不会索要账号密码。",
+    "show": "显示",
+    "hide": "隐藏",
+    "verify": "验证账号",
+    "verifying": "正在验证…",
+    "reverify": "更换账号",
+    "resultTitle": "请确认充值目标",
+    "account": "目标账号",
+    "currentPlan": "当前套餐",
+    "targetPlan": "充值套餐",
+    "expiresIn": "确认有效期剩余 {minutes} 分钟",
+    "expired": "验证结果已过期，请重新验证账号",
+    "confirmAccount": "我确认以上是我要充值的账号，付款后不支持更换账号",
+    "createOrder": "确认并去付款",
+    "creating": "正在创建订单…",
+    "tooLong": "凭据内容过长",
+    "required": "请填写账号凭据",
+    "skuRequired": "请先选择套餐",
+    "loginRequired": "登录后才能购买代充套餐"
+  },
+  "directChargeOrder": {
+    "title": "充值进度",
+    "account": "目标账号",
+    "plan": "充值套餐",
+    "timeline": "进度记录",
+    "status": {
+      "pending_payment": "待付款",
+      "queued": "排队充值",
+      "processing": "充值处理中",
+      "credential_required": "需要补充凭据",
+      "action_required": "需要账号侧操作",
+      "verifying": "结果核验中",
+      "succeeded": "充值完成",
+      "failed": "充值失败",
+      "closed": "已关闭"
+    },
+    "statusHint": {
+      "pending_payment": "付款完成后系统会自动开始充值。",
+      "queued": "已收到付款，正在排队处理，可以关闭页面。",
+      "processing": "正在为你的账号开通，请勿在此期间修改账号订阅。",
+      "credential_required": "凭据已失效，请重新提交同一账号的凭据。",
+      "action_required": "需要你在账号侧完成操作，请按提示处理或联系客服。",
+      "verifying": "充值结果正在核验，核验完成后会邮件通知你。",
+      "succeeded": "套餐已开通，可登录账号查看。",
+      "failed": "本次充值未成功，退款将按售后规则处理，请联系客服。",
+      "closed": "订单未付款已关闭，凭据已销毁。"
+    }
   }
 }

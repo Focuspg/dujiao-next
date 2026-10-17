@@ -44,6 +44,7 @@ var (
 	ErrRiskProductQuantityLimit  = errors.New("risk: product quantity limit")
 	ErrRiskPendingProductLimit   = errors.New("risk: pending product quantity limit")
 	ErrRiskOrderRateLimited      = errors.New("risk: order rate limited")
+	ErrDirectChargeOrderInvalid  = errors.New("direct charge order invalid")
 )
 
 type riskRateLimitedError struct {
@@ -340,6 +341,7 @@ var userOrderCommonErrorRules = []mappedError{
 	{target: productdomain.ErrMaxPurchaseExceeded, code: response.CodeBadRequest, key: "error.product_max_purchase_exceeded"},
 	{target: productdomain.ErrMinPurchaseNotMet, code: response.CodeBadRequest, key: "error.product_min_purchase_not_met"},
 	{target: ErrManualStockInsufficient, code: response.CodeBadRequest, key: "error.manual_stock_insufficient"},
+	{target: ErrDirectChargeOrderInvalid, code: response.CodeBadRequest, key: "error.direct_charge_order_invalid"},
 	{target: cardsecretapp.ErrInsufficient, code: response.CodeBadRequest, key: "error.card_secret_insufficient"},
 	{target: ErrOrderCurrencyMismatch, code: response.CodeBadRequest, key: "error.order_currency_mismatch"},
 	{target: productcontract.ErrProductPriceInvalid, code: response.CodeBadRequest, key: "error.product_price_invalid"},
@@ -389,6 +391,7 @@ var guestOrderCommonErrorRules = []mappedError{
 	{target: productdomain.ErrPurchaseQuantityInvalid, code: response.CodeBadRequest, key: "error.order_item_invalid"},
 	{target: ErrInvalidOrderAmount, code: response.CodeBadRequest, key: "error.order_amount_invalid"},
 	{target: ErrManualStockInsufficient, code: response.CodeBadRequest, key: "error.manual_stock_insufficient"},
+	{target: ErrDirectChargeOrderInvalid, code: response.CodeBadRequest, key: "error.direct_charge_order_invalid"},
 	{target: cardsecretapp.ErrInsufficient, code: response.CodeBadRequest, key: "error.card_secret_insufficient"},
 	{target: ErrOrderCurrencyMismatch, code: response.CodeBadRequest, key: "error.order_currency_mismatch"},
 	{target: productcontract.ErrProductPriceInvalid, code: response.CodeBadRequest, key: "error.product_price_invalid"},

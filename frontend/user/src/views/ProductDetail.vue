@@ -256,7 +256,7 @@
               </div>
 
               <!-- Quantity Selector -->
-                <div class="mb-8">
+                <div v-if="!isDirectCharge" class="mb-8">
                   <h2 class="mb-3 text-sm font-bold uppercase tracking-widest text-muted-foreground">
                     {{ t('productDetail.quantity') }}
                   </h2>
@@ -301,6 +301,7 @@
                   <Button v-if="requiresLogin" class="w-full h-12 font-bold" @click="goLogin">
                     {{ t('productDetail.loginToBuy') }}
                   </Button>
+                  <DirectChargePanel v-else-if="isDirectCharge" :sku-id="selectedSku ? Number(selectedSku.id) : null" :disabled="!canPurchase" />
                   <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Button variant="secondary" class="h-12 font-bold" :disabled="!canPurchase" @click="addToCart">
                       {{ t('productDetail.addToCart') }}
@@ -371,7 +372,7 @@
 
         <!-- Mobile Fixed Purchase Bar -->
         <ProductMobileBar
-          :visible="showMobileBar && !!product && !loading"
+          :visible="showMobileBar && !!product && !loading && !isDirectCharge"
           :requires-login="requiresLogin"
           :can-purchase="canPurchase"
           :show-member-price="mobileBarShowMemberPrice"
@@ -419,6 +420,7 @@ import { processHtmlForDisplay } from '../utils/content'
 import { useProductDetail } from '../composables/useProductDetail'
 import ProductImageGallery from '../components/product/ProductImageGallery.vue'
 import ProductMobileBar from '../components/product/ProductMobileBar.vue'
+import DirectChargePanel from '../components/directcharge/DirectChargePanel.vue'
 import BreadcrumbNav from '../components/BreadcrumbNav.vue'
 import EmptyState from '../components/EmptyState.vue'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -464,7 +466,7 @@ const {
   showSelectedSkuMemberBadge,
   isSkuPurchasable, skuDisplayText, skuStockText, skuStockBadgeClass,
   quantityEffectiveLimit, quantityEffectiveMin, handleQuantityInput,
-  requiresLogin, requiresSKUSelection, canPurchase, cannotPurchaseReason,
+  isDirectCharge, requiresLogin, requiresSKUSelection, canPurchase, cannotPurchaseReason,
   categoryName, images,
   addToCart, buyNow, goLogin, loadProduct,
   mobileBarShowMemberPrice, mobileBarMemberPriceDisplay,

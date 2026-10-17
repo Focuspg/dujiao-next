@@ -46,6 +46,8 @@
         </div>
       </div>
 
+      <DirectChargeStatus v-if="isDirectChargeOrder" class="mb-[18px]" :order-no="order.order_no" :order-status="order.status" />
+
       <VaultOrderBody
         :order="order"
         variant="user"
@@ -62,12 +64,13 @@ import { AlertCircle } from 'lucide-vue-next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import VaultOrderBody from './components/VaultOrderBody.vue'
+import DirectChargeStatus from '../../components/directcharge/DirectChargeStatus.vue'
 import { useOrderDetail } from '../../composables/useOrderDetail'
 
 const { t } = useI18n()
 
 const {
-  loading, order, debouncedLoadOrder, cancelOrder, fulfillmentDownloading, handleDownloadFulfillment,
+  loading, order, isDirectChargeOrder, debouncedLoadOrder, cancelOrder, fulfillmentDownloading, handleDownloadFulfillment,
   statusLabel, statusVariant, formatDate, formatMoney,
 } = useOrderDetail()
 </script>

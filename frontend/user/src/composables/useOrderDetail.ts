@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { userOrderAPI } from '../api'
@@ -21,6 +21,15 @@ export function useOrderDetail() {
   const fulfillmentDownloading = ref(false)
 
   const helpers = useOrderDisplayHelpers(order)
+
+  // 含账号代充商品的订单额外展示充值进度
+  const isDirectChargeOrder = computed(() => {
+    const items = [
+      ...(Array.isArray(order.value?.items) ? order.value.items : []),
+      ...(Array.isArray(order.value?.children) ? order.value.children.flatMap((child: any) => child?.items || []) : []),
+    ]
+    return items.some((item: any) => item?.fulfillment_type === 'direct_charge')
+  })
 
   const handleDownloadFulfillment = async (orderNo: string) => {
     if (fulfillmentDownloading.value) return
@@ -86,6 +95,7 @@ export function useOrderDetail() {
   return {
     loading,
     order,
+    isDirectChargeOrder,
     debouncedLoadOrder,
     cancelOrder,
     fulfillmentDownloading,
