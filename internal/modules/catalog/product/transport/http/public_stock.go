@@ -32,6 +32,13 @@ func (h *PublicHandler) decorateProductStock(product *productdomain.Product, ite
 		fulfillmentType = constants.FulfillmentTypeManual
 	}
 
+	// 账号代充：不占用本地库存，可售由充值规格与上游实时预检控制
+	if fulfillmentType == constants.FulfillmentTypeDirectCharge {
+		item.ManualStockAvailable = constants.ManualStockUnlimited
+		item.StockStatus = constants.ProductStockStatusUnlimited
+		return
+	}
+
 	// upstream 类型：根据 SKU 映射中的上游库存判断
 	if fulfillmentType == constants.FulfillmentTypeUpstream {
 		h.decorateUpstreamStock(product, item)

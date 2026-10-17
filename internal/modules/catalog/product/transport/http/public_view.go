@@ -124,6 +124,9 @@ func (v *publicProductView) skuStockState(sv publicSKUView) (string, int64) {
 	if fulfillmentType == "" {
 		fulfillmentType = constants.FulfillmentTypeManual
 	}
+	if fulfillmentType == constants.FulfillmentTypeDirectCharge {
+		return constants.ProductStockStatusUnlimited, int64(constants.ManualStockUnlimited)
+	}
 	quantity := domaincatalog.StockQuantity(fulfillmentType, sv.AutoStockAvailable, sv.ManualStockTotal)
 	status := domaincatalog.StorefrontStockPolicy().Status(quantity)
 	return status, quantity
