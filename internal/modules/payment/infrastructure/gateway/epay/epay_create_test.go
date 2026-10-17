@@ -2,6 +2,8 @@ package epay
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -59,8 +61,21 @@ func TestCreatePaymentV2HandlesDoubleEncodedJSON(t *testing.T) {
 		if got := r.Header.Get("Accept-Encoding"); got != "identity" {
 			t.Fatalf("Accept-Encoding = %s, want identity", got)
 		}
+		fields := map[string]string{
+			"code":     "0",
+			"msg":      "success",
+			"trade_no": "T20260322002",
+			"pay_type": "qrcode",
+			"pay_info": "https://pay.example.com/v2-qr",
+		}
+		sign, err := signRSA(buildSignContent(fields), privateKeyPEM)
+		if err != nil {
+			t.Errorf("sign response: %v", err)
+		}
+		inner := fmt.Sprintf(`{"code":0,"msg":"success","trade_no":"T20260322002","pay_type":"qrcode","pay_info":"https://pay.example.com/v2-qr","sign":%q,"sign_type":"RSA"}`, sign)
+		doubleEncoded, _ := json.Marshal(inner)
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte("\"{\\\"code\\\":0,\\\"msg\\\":\\\"success\\\",\\\"trade_no\\\":\\\"T20260322002\\\",\\\"pay_type\\\":\\\"qrcode\\\",\\\"pay_info\\\":\\\"https://pay.example.com/v2-qr\\\"}\""))
+		_, _ = w.Write(doubleEncoded)
 	}))
 	defer server.Close()
 
@@ -97,7 +112,7 @@ func TestCreatePaymentV2HandlesDoubleEncodedJSON(t *testing.T) {
 	if result.PayType != constants.EpayPayTypeQRCode {
 		t.Fatalf("pay type = %s", result.PayType)
 	}
-	if result.Raw == nil || result.Raw["code"] != float64(0) {
+	if result.Raw == nil || result.Raw["code"] != json.Number("0") {
 		t.Fatalf("raw response should be decoded into object, got %#v", result.Raw)
 	}
 }

@@ -287,6 +287,10 @@ func TestEpayAdapter_MapEpayError(t *testing.T) {
 		{"sign_invalid→signature", epay.ErrSignatureInvalid, paymentcontract.ErrGatewaySignatureInvalid},
 		{"request", epay.ErrRequestFailed, paymentcontract.ErrGatewayRequestFailed},
 		{"response", epay.ErrResponseInvalid, paymentcontract.ErrGatewayResponseInvalid},
+		{"rejected→rejected", fmt.Errorf("%w: %w", epay.ErrResponseInvalid, epay.ErrRejected), paymentcontract.ErrGatewayRejected},
+		{"rejected→response", fmt.Errorf("%w: %w", epay.ErrResponseInvalid, epay.ErrRejected), paymentcontract.ErrGatewayResponseInvalid},
+		{"pay_type→config", epay.ErrPayTypeUnsupported, paymentcontract.ErrGatewayConfigInvalid},
+		{"version→config", epay.ErrVersionUnsupported, paymentcontract.ErrGatewayConfigInvalid},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
