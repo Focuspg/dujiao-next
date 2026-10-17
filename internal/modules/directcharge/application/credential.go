@@ -48,6 +48,7 @@ func (s *Service) ResupplyCredential(ctx context.Context, input ResupplyCredenti
 
 	result, err := s.upstream.Preflight(ctx, directchargecontract.UpstreamPreflightRequest{
 		Product:         task.Product,
+		Plan:            spec.UpstreamPlan,
 		PaymentCountry:  spec.PaymentCountry,
 		PaymentCurrency: spec.PaymentCurrency,
 		Mode:            mode,

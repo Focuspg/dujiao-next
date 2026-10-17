@@ -9,6 +9,7 @@ import (
 // UpstreamPreflightRequest 发往上游的预检请求；产品、地区、币种全部来自后台规格
 type UpstreamPreflightRequest struct {
 	Product         string
+	Plan            string // 目标套餐；预检不返回该档实时报价时（如 Codex 点数）用于补齐价格表报价
 	PaymentCountry  string
 	PaymentCurrency string
 	Mode            string
