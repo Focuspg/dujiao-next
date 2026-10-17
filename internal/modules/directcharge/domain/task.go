@@ -23,14 +23,20 @@ const (
 	TaskClosed = "closed"
 )
 
+// 售后退款进度
+const (
+	RefundRequested = "requested"
+	RefundCompleted = "refunded"
+)
+
 // ErrTransitionNotAllowed 状态迁移不被允许
 var ErrTransitionNotAllowed = errors.New("directcharge: task transition not allowed")
 
 var taskTransitions = map[string][]string{
 	TaskAwaitingPayment:   {TaskReady, TaskClosed, TaskReview},
-	TaskReady:             {TaskPreflighting, TaskSubmitting, TaskWaitingCredential, TaskReview},
+	TaskReady:             {TaskPreflighting, TaskSubmitting, TaskWaitingCredential, TaskReview, TaskFailedConfirmed},
 	TaskPreflighting:      {TaskReady, TaskSubmitting, TaskWaitingCredential, TaskReview, TaskFailedConfirmed},
-	TaskWaitingCredential: {TaskReady, TaskReview},
+	TaskWaitingCredential: {TaskReady, TaskReview, TaskFailedConfirmed},
 	TaskSubmitting:        {TaskProcessing, TaskSubmitUnknown, TaskWaitingCredential, TaskReady, TaskReview, TaskFailedConfirmed},
 	TaskSubmitUnknown:     {TaskProcessing, TaskReady, TaskReview, TaskSucceeded, TaskFailedConfirmed, TaskCancelledConfirmed},
 	TaskProcessing:        {TaskSucceeded, TaskFailedConfirmed, TaskCancelledConfirmed, TaskRequiresAction, TaskReview},
@@ -105,14 +111,19 @@ type Task struct {
 	CurrentAttemptID *uint  `gorm:"index" json:"current_attempt_id,omitempty"`
 	AttemptCount     int    `gorm:"not null;default:0" json:"attempt_count"`
 	// RefundLocked 退款锁：置位后任何路径都不得再提交上游
-	RefundLocked  bool       `gorm:"not null;default:false;index" json:"refund_locked"`
-	NextCheckAt   *time.Time `gorm:"index" json:"next_check_at,omitempty"`
-	CheckCount    int        `gorm:"not null;default:0" json:"check_count"`
-	LeaseOwner    string     `gorm:"type:varchar(64);not null;default:''" json:"-"`
-	LeaseUntil    *time.Time `gorm:"index" json:"-"`
-	ErrorKind     string     `gorm:"type:varchar(32);not null;default:''" json:"error_kind"`
-	ErrorMessage  string     `gorm:"type:varchar(500);not null;default:''" json:"error_message"`
-	ActionMessage string     `gorm:"type:varchar(500);not null;default:''" json:"action_message"`
+	RefundLocked bool `gorm:"not null;default:false;index" json:"refund_locked"`
+	// RefundStatus 售后退款进度：空 / requested（用户申请）/ refunded（已登记退款）
+	RefundStatus      string     `gorm:"type:varchar(16);index;not null;default:''" json:"refund_status"`
+	RefundRemark      string     `gorm:"type:varchar(500);not null;default:''" json:"refund_remark"`
+	RefundRequestedAt *time.Time `json:"refund_requested_at,omitempty"`
+	RefundedAt        *time.Time `json:"refunded_at,omitempty"`
+	NextCheckAt       *time.Time `gorm:"index" json:"next_check_at,omitempty"`
+	CheckCount        int        `gorm:"not null;default:0" json:"check_count"`
+	LeaseOwner        string     `gorm:"type:varchar(64);not null;default:''" json:"-"`
+	LeaseUntil        *time.Time `gorm:"index" json:"-"`
+	ErrorKind         string     `gorm:"type:varchar(32);not null;default:''" json:"error_kind"`
+	ErrorMessage      string     `gorm:"type:varchar(500);not null;default:''" json:"error_message"`
+	ActionMessage     string     `gorm:"type:varchar(500);not null;default:''" json:"action_message"`
 	// AlertedAt 处理超时已提醒站长的时间，避免每轮重复告警
 	AlertedAt   *time.Time `json:"-"`
 	PaidAt      *time.Time `json:"paid_at,omitempty"`

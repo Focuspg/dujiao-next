@@ -55,6 +55,16 @@ type Store interface {
 	UnmatchedWebhookEvents(since time.Time, limit int) ([]directchargedomain.WebhookEvent, error)
 	// WakeTask 让进行中的任务在下一轮立即查单
 	WakeTask(taskID uint, now time.Time) error
+
+	// 以下供后台管理使用
+
+	ListSpecs() ([]directchargedomain.Spec, error)
+	// SaveSpec 新建（ID 为 0）或更新规格；SKU 已被其它规格使用返回 ErrSpecDuplicate
+	SaveSpec(spec *directchargedomain.Spec) error
+	TaskByID(id uint) (*directchargedomain.Task, error)
+	ListTasks(filter TaskFilter) ([]directchargedomain.Task, int64, error)
+	AttemptsByTask(taskID uint) ([]directchargedomain.Attempt, error)
+	WebhookEventsByTask(taskID uint) ([]directchargedomain.WebhookEvent, error)
 }
 
 // Upstream 供应商预检
@@ -84,6 +94,8 @@ type Orders interface {
 	CancelUnpaid(parentOrderID, userID uint) error
 	// Status 返回子订单当前状态；订单不存在返回空字符串
 	Status(orderID uint) (string, error)
+	// Refund 登记整单线下退款（原路退回由财务在支付平台完成）；已全额退款时直接返回成功
+	Refund(orderID uint, remark string) error
 	// Deliver 充值确认成功后交付子订单（通知用户）；已交付时视为成功
 	Deliver(orderID uint, payload string) error
 }

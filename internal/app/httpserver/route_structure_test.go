@@ -170,6 +170,7 @@ func TestRouteDomainFilesPreserveTrustBoundaries(t *testing.T) {
 				`promotiontransport.RegisterAdminRoutes(authorized, adminPromotionHandler)`,
 				`notificationtransport.RegisterAdminRoutes(authorized, adminNotificationHandler)`,
 				`procurementtransport.RegisterAdminRoutes(authorized, adminProcurementHandler)`,
+				`directchargehttp.RegisterAdminRoutes(authorized, directchargehttp.NewAdminHandler(c.DirectChargeService))`,
 				`resellertransport.RegisterOperationsOverviewRoutes(authorized, adminResellerOperationsHandler)`,
 				`resellertransport.RegisterManagementRoutes(authorized, adminResellerManagementHandler)`,
 				`resellertransport.RegisterProfileDetailRoutes(authorized, adminResellerProfileDetailHandler)`,

@@ -36,6 +36,9 @@ export interface DirectChargeOrder {
     plan: string
     account_masked: string
     action_message?: string
+    refund_status?: '' | 'requested' | 'refunded'
+    can_resupply: boolean
+    can_request_refund: boolean
     created_at: string
     paid_at?: string
     completed_at?: string
@@ -46,4 +49,7 @@ export const directChargeAPI = {
     preflight: (data: DirectChargePreflightPayload) => userApi.post('/direct-charge/preflights', data),
     createOrder: (preflightRef: string) => userApi.post('/direct-charge/orders', { preflight_ref: preflightRef }),
     order: (orderNo: string) => userApi.get(`/direct-charge/orders/${encodeURIComponent(orderNo)}`),
+    resupplyCredential: (orderNo: string, data: { mode: DirectChargeMode; credential: string }) =>
+        userApi.post(`/direct-charge/orders/${encodeURIComponent(orderNo)}/credential`, data),
+    requestRefund: (orderNo: string) => userApi.post(`/direct-charge/orders/${encodeURIComponent(orderNo)}/refund-request`),
 }

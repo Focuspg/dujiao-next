@@ -28,6 +28,8 @@ type UserService interface {
 	Preflight(ctx context.Context, input directchargeapp.PreflightInput) (*directchargeapp.PreflightView, error)
 	CreateOrder(input directchargeapp.CreateOrderInput) (*directchargeapp.CreateOrderResult, error)
 	GetOrder(userID uint, orderNo string) (*directchargeapp.TaskView, error)
+	ResupplyCredential(ctx context.Context, input directchargeapp.ResupplyCredentialInput) (*directchargeapp.TaskView, error)
+	RequestRefund(userID uint, orderNo string) (*directchargeapp.TaskView, error)
 }
 
 type UserHandler struct {
@@ -128,6 +130,60 @@ func (h *UserHandler) GetOrder(c *gin.Context) {
 	response.Success(c, view)
 }
 
+type credentialRequest struct {
+	Mode       string `json:"mode"`
+	Credential string `json:"credential"`
+}
+
+// ResupplyCredential 付款后凭据失效时补充同一账号的新凭据。请求体含敏感凭据：限制大小、禁止缓存，不记录请求体。
+func (h *UserHandler) ResupplyCredential(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
+	uid, ok := ginutil.GetUserID(c)
+	if !ok {
+		return
+	}
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxPreflightBody)
+	var req credentialRequest
+	if err := json.NewDecoder(c.Request.Body).Decode(&req); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			ginutil.RespondError(c, response.CodeBadRequest, "error.direct_charge_credential_unsupported", nil)
+			return
+		}
+		ginutil.RespondError(c, response.CodeBadRequest, "error.bad_request", nil)
+		return
+	}
+	ctx, cancel := context.WithTimeout(c.Request.Context(), preflightTimeout)
+	defer cancel()
+	view, err := h.service.ResupplyCredential(ctx, directchargeapp.ResupplyCredentialInput{
+		UserID:     uid,
+		OrderNo:    c.Param("order_no"),
+		Mode:       req.Mode,
+		Credential: req.Credential,
+	})
+	req.Credential = ""
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	response.Success(c, view)
+}
+
+// RequestRefund 用户申请售后退款（只登记申请，由后台审批）
+func (h *UserHandler) RequestRefund(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
+	uid, ok := ginutil.GetUserID(c)
+	if !ok {
+		return
+	}
+	view, err := h.service.RequestRefund(uid, c.Param("order_no"))
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	response.Success(c, view)
+}
+
 var errorRules = []struct {
 	target error
 	code   int
@@ -143,6 +199,15 @@ var errorRules = []struct {
 	{directchargecontract.ErrPreflightExpired, response.CodeBadRequest, "error.direct_charge_preflight_expired"},
 	{directchargecontract.ErrAccountBusy, response.CodeBadRequest, "error.direct_charge_account_busy"},
 	{directchargecontract.ErrNotFound, response.CodeNotFound, "error.direct_charge_not_found"},
+	{directchargecontract.ErrCredentialNotRequired, response.CodeBadRequest, "error.direct_charge_credential_not_required"},
+	{directchargecontract.ErrAccountMismatch, response.CodeBadRequest, "error.direct_charge_account_mismatch"},
+	{directchargecontract.ErrRefundNotAllowed, response.CodeBadRequest, "error.direct_charge_refund_not_allowed"},
+	{directchargecontract.ErrRefundFailed, response.CodeBadRequest, "error.direct_charge_refund_failed"},
+	{directchargecontract.ErrActionNotAllowed, response.CodeBadRequest, "error.direct_charge_action_not_allowed"},
+	{directchargecontract.ErrAttemptOpen, response.CodeBadRequest, "error.direct_charge_attempt_open"},
+	{directchargecontract.ErrReasonRequired, response.CodeBadRequest, "error.direct_charge_reason_required"},
+	{directchargecontract.ErrInvalidSpec, response.CodeBadRequest, "error.direct_charge_invalid_spec"},
+	{directchargecontract.ErrSpecDuplicate, response.CodeBadRequest, "error.direct_charge_spec_duplicate"},
 }
 
 func respondError(c *gin.Context, err error) {

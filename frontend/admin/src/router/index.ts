@@ -304,6 +304,18 @@ const routes = [
         meta: { permission: 'GET:/admin/product-mappings' },
       },
       {
+        path: 'direct-charge-tasks',
+        name: 'direct-charge-tasks',
+        component: () => import('@/views/admin/DirectChargeTasks.vue'),
+        meta: { permission: 'GET:/admin/direct-charge/tasks' },
+      },
+      {
+        path: 'direct-charge-specs',
+        name: 'direct-charge-specs',
+        component: () => import('@/views/admin/DirectChargeSpecs.vue'),
+        meta: { permission: 'GET:/admin/direct-charge/specs' },
+      },
+      {
         path: 'procurement-orders',
         name: 'procurement-orders',
         component: () => import('@/views/admin/ProcurementOrders.vue'),

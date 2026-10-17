@@ -32,11 +32,13 @@ type Spec struct {
 	// MaxQuoteMinor 上游报价上限（报价币种最小单位）；0 表示不限制
 	MaxQuoteMinor int64 `gorm:"not null;default:0" json:"max_quote_minor"`
 	// ConcurrencyLimit 同时处于提交/处理中的任务上限
-	ConcurrencyLimit int       `gorm:"not null;default:1" json:"concurrency_limit"`
-	Enabled          bool      `gorm:"not null;default:false;index" json:"enabled"`
-	Version          int       `gorm:"not null;default:1" json:"version"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	ConcurrencyLimit int  `gorm:"not null;default:1" json:"concurrency_limit"`
+	Enabled          bool `gorm:"not null;default:false;index" json:"enabled"`
+	// SubmitPaused 暂停向上游提交（不影响查单）；已付款任务排队等待恢复
+	SubmitPaused bool      `gorm:"not null;default:false" json:"submit_paused"`
+	Version      int       `gorm:"not null;default:1" json:"version"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 func (Spec) TableName() string { return "directcharge_specs" }

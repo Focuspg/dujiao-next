@@ -33,6 +33,11 @@ func (s *Service) submit(ctx context.Context, task *directchargedomain.Task) {
 		s.toReview(task, "spec has no card_id configured")
 		return
 	}
+	if spec.SubmitPaused {
+		// 后台暂停提交：排队等待恢复，不转人工
+		s.deferTask(task, retryShort, "")
+		return
+	}
 	limit := spec.ConcurrencyLimit
 	if limit < 1 {
 		limit = 1

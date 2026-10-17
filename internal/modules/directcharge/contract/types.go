@@ -137,6 +137,18 @@ type TaskChange struct {
 	// Attempt 非空时在同一事务内保存
 	Attempt           *directchargedomain.Attempt
 	DestroyCredential bool
+	// NewCredential 非空时在同一事务内销毁任务旧凭据、保存新凭据（绑定到任务）与 NewPreflight，并改为任务当前凭据
+	NewCredential *directchargedomain.Credential
+	NewPreflight  *directchargedomain.Preflight
+}
+
+// TaskFilter 后台任务列表筛选
+type TaskFilter struct {
+	Status       string
+	OrderNo      string // 父订单号或子订单号
+	RefundStatus string
+	Page         int
+	PageSize     int
 }
 
 // 告警级别

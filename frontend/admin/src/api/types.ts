@@ -630,6 +630,116 @@ export interface AdminProcurementOrder {
   [key: string]: unknown
 }
 
+// --- DirectCharge ---
+export interface AdminDirectChargeSpecInput {
+  product_id: number
+  sku_id: number
+  upstream_product: string
+  upstream_plan: string
+  payment_country: string
+  payment_currency: string
+  credential_modes: string[]
+  allowed_current_plans: string[]
+  card_id: number
+  max_cost_usd_minor: number
+  max_quote_minor: number
+  concurrency_limit: number
+  enabled: boolean
+  submit_paused: boolean
+}
+
+export interface AdminDirectChargeSpec extends AdminDirectChargeSpecInput {
+  id: number
+  supplier: string
+  version: number
+  created_at: string
+  updated_at: string
+}
+
+export interface AdminDirectChargeTask {
+  id: number
+  order_id: number
+  order_no: string
+  parent_order_id: number
+  parent_order_no: string
+  user_id: number
+  spec_id: number
+  sku_id: number
+  status: string
+  version: number
+  product: string
+  plan: string
+  account_masked: string
+  quote_currency: string
+  quote_amount_minor: number
+  quote_exponent: number
+  attempt_count: number
+  current_attempt_id?: number
+  refund_locked: boolean
+  refund_status: string
+  refund_remark: string
+  refund_requested_at?: string
+  refunded_at?: string
+  next_check_at?: string
+  check_count: number
+  error_kind: string
+  error_message: string
+  action_message: string
+  paid_at?: string
+  submitted_at?: string
+  completed_at?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface AdminDirectChargeAttempt {
+  id: number
+  attempt_no: number
+  client_request_id: string
+  card_id: number
+  status: string
+  upstream_order_id: number
+  upstream_status: string
+  upstream_stage: string
+  upstream_message: string
+  currency: string
+  quoted_amount_minor: number
+  final_amount_minor: number
+  service_fee_minor: number
+  reason: string
+  error_kind: string
+  error_message: string
+  sent_at?: string
+  last_checked_at?: string
+  completed_at?: string
+  created_at: string
+}
+
+export interface AdminDirectChargeTaskLog {
+  id: number
+  from_status: string
+  to_status: string
+  reason: string
+  actor: string
+  created_at: string
+}
+
+export interface AdminDirectChargeEvent {
+  id: number
+  event_type: string
+  upstream_order_id: number
+  upstream_status: string
+  status: string
+  received_at: string
+}
+
+export interface AdminDirectChargeTaskDetail {
+  task: AdminDirectChargeTask
+  attempts: AdminDirectChargeAttempt[]
+  logs: AdminDirectChargeTaskLog[]
+  events: AdminDirectChargeEvent[]
+}
+
 // --- Reconciliation ---
 export interface AdminReconciliationJob {
   id: number

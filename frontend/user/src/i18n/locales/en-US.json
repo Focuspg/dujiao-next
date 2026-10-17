@@ -1800,6 +1800,18 @@
       "succeeded": "The plan is active. Sign in to your account to check.",
       "failed": "The top-up did not succeed. Refunds follow the after-sales policy, please contact support.",
       "closed": "The order was closed without payment and the credential was destroyed."
+    },
+    "resupply": {
+      "title": "Provide a new credential",
+      "hint": "Submit a new credential for the same account you ordered for. The top-up continues automatically once it is verified.",
+      "submit": "Submit and continue"
+    },
+    "refund": {
+      "requested": "We received your refund request. Support will refund the original payment after checking and email you.",
+      "refunded": "This order has been refunded to the original payment method.",
+      "hint": "If you no longer want the top-up or it failed, you can request a refund. Support will review it.",
+      "request": "Request a refund",
+      "confirm": "Request a refund? Support will review and process it."
     }
   }
 }

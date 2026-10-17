@@ -44,6 +44,7 @@ const (
 	alertSlow               = "direct_charge_slow"
 	alertUpstreamBlocked    = "direct_charge_upstream_blocked"
 	alertOrphanOrder        = "direct_charge_orphan_order"
+	alertRefundRequested    = "direct_charge_refund_requested"
 )
 
 var dueStatuses = []string{

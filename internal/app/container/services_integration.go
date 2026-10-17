@@ -46,6 +46,7 @@ import (
 	notifyapp "github.com/dujiao-next/internal/modules/telegram/notify/application"
 	notifybotapi "github.com/dujiao-next/internal/modules/telegram/notify/infrastructure/botapi"
 	"github.com/dujiao-next/internal/platform/database/gormdb"
+	"github.com/dujiao-next/internal/queue"
 )
 
 // initIntegrationServices 装配通知、站点对接、支付、采购、渠道与 Telegram 集成。
@@ -181,7 +182,13 @@ func (c *Container) newDirectChargeService() *directchargeapp.Service {
 	options.Enabled = true
 	options.Vault = vault
 	options.Upstream = directchargeupstream.New(client, cfg.ZovoCard.WebhookSecret)
-	options.Orders = directchargeorder.New(c.OrderService, c.OrderStore, c.FulfillmentService)
+	options.Orders = directchargeorder.New(c.OrderService, c.OrderStore, c.FulfillmentService).
+		WithRefunds(c.OrderRefundService, func(payload queue.OrderStatusEmailPayload) error {
+			if c.QueueClient == nil {
+				return nil
+			}
+			return c.QueueClient.EnqueueOrderStatusEmail(payload)
+		})
 	options.Alerter = directchargenotification.New(c.NotificationService)
 	return directchargeapp.NewService(options)
 }

@@ -33,6 +33,9 @@ type TaskView struct {
 	QuoteAmountMinor int64          `json:"quote_amount_minor"`
 	QuoteExponent    int            `json:"quote_exponent"`
 	ActionMessage    string         `json:"action_message,omitempty"`
+	RefundStatus     string         `json:"refund_status,omitempty"`
+	CanResupply      bool           `json:"can_resupply"`
+	CanRequestRefund bool           `json:"can_request_refund"`
 	CreatedAt        time.Time      `json:"created_at"`
 	PaidAt           *time.Time     `json:"paid_at,omitempty"`
 	CompletedAt      *time.Time     `json:"completed_at,omitempty"`
@@ -89,6 +92,9 @@ func (s *Service) GetOrder(userID uint, orderNo string) (*TaskView, error) {
 		QuoteAmountMinor: task.QuoteAmountMinor,
 		QuoteExponent:    task.QuoteExponent,
 		ActionMessage:    task.ActionMessage,
+		RefundStatus:     task.RefundStatus,
+		CanResupply:      task.Status == directchargedomain.TaskWaitingCredential && !task.RefundLocked && task.RefundStatus == "",
+		CanRequestRefund: refundRequestable(task),
 		CreatedAt:        task.CreatedAt,
 		PaidAt:           task.PaidAt,
 		CompletedAt:      task.CompletedAt,

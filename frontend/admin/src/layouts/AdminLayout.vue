@@ -47,7 +47,7 @@ import {
   Bell,
   ImageIcon,
 } from 'lucide-vue-next'
-import { Menu } from 'lucide-vue-next'
+import { Menu, Zap } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -414,6 +414,25 @@ const navGroups = computed<NavGroup[]>(() => {
           to: '/resellers/withdraws',
           icon: WalletCards,
           permission: 'GET:/admin/resellers/withdraws',
+        },
+      ],
+    },
+    {
+      id: 'directCharge',
+      label: t('admin.navGroups.directCharge'),
+      icon: Zap,
+      items: [
+        {
+          label: t('admin.navItems.directChargeTasks'),
+          to: '/direct-charge-tasks',
+          icon: Zap,
+          permission: 'GET:/admin/direct-charge/tasks',
+        },
+        {
+          label: t('admin.navItems.directChargeSpecs'),
+          to: '/direct-charge-specs',
+          icon: SlidersHorizontal,
+          permission: 'GET:/admin/direct-charge/specs',
         },
       ],
     },

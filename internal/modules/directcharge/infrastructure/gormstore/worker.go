@@ -60,6 +60,26 @@ func (s *Store) TransitionTask(change directchargecontract.TaskChange) (bool, er
 			updates["current_attempt_id"] = change.NewAttempt.ID
 			updates["attempt_count"] = gorm.Expr("attempt_count + 1")
 		}
+		if change.NewCredential != nil {
+			if err := tx.Model(&directchargedomain.Credential{}).
+				Where("task_id = ? AND destroyed_at IS NULL", change.TaskID).
+				Updates(map[string]interface{}{"ciphertext": "", "destroyed_at": change.Now}).Error; err != nil {
+				return err
+			}
+			taskID := change.TaskID
+			change.NewCredential.TaskID = &taskID
+			if err := tx.Create(change.NewCredential).Error; err != nil {
+				return err
+			}
+			updates["credential_id"] = change.NewCredential.ID
+			if change.NewPreflight != nil {
+				change.NewPreflight.CredentialID = &change.NewCredential.ID
+				if err := tx.Create(change.NewPreflight).Error; err != nil {
+					return err
+				}
+				updates["preflight_id"] = change.NewPreflight.ID
+			}
+		}
 		result := tx.Model(&directchargedomain.Task{}).
 			Where("id = ? AND version = ? AND status = ?", change.TaskID, change.FromVersion, change.FromStatus).
 			Updates(updates)
