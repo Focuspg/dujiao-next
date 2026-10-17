@@ -339,6 +339,7 @@ import { useUserProfileStore } from '../stores/userProfile'
 import { getFirstImageUrl, getImageUrl } from '../utils/image'
 import { normalizeSkuId, buildSkuDisplayText } from '../utils/sku'
 import { resolveSkuAvailableStock, resolveSkuStockDisplay, type PublicStockDisplay } from '../utils/publicStock'
+import { isDirectChargeProduct } from '../utils/directCharge'
 import { useLocalized, useProductLabels } from '../composables/useProduct'
 import { toast } from '../composables/useToast'
 import { X, Image as ImageIcon, Tag, Minus, Plus, ShoppingCart } from 'lucide-vue-next'
@@ -584,6 +585,12 @@ const syncSelectedSku = () => {
 
 // Reset state when product changes or drawer opens
 watch(() => [props.product, props.visible], () => {
+  // 代充商品需在详情页先验证充值账号再下单，不走快捷购买与购物车
+  if (props.visible && isDirectChargeProduct(props.product)) {
+    emit('update:visible', false)
+    router.push(`/products/${props.product?.slug}`)
+    return
+  }
   if (props.visible && props.product) {
     purchaseWarning.value = ''
     quantity.value = effectiveMin.value
