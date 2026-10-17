@@ -25,6 +25,24 @@ var (
 	ErrNotFound = errors.New("direct charge task not found")
 	// ErrOrderCreateFailed 本地订单创建失败
 	ErrOrderCreateFailed = errors.New("direct charge order create failed")
+	// ErrCredentialNotRequired 订单当前不需要补充凭据
+	ErrCredentialNotRequired = errors.New("direct charge credential not required")
+	// ErrAccountMismatch 新凭据不是下单时的目标账号
+	ErrAccountMismatch = errors.New("direct charge account mismatch")
+	// ErrRefundNotAllowed 当前状态不能申请或执行退款
+	ErrRefundNotAllowed = errors.New("direct charge refund not allowed")
+	// ErrActionNotAllowed 任务当前状态不允许该后台操作，或状态已被并发修改
+	ErrActionNotAllowed = errors.New("direct charge action not allowed")
+	// ErrAttemptOpen 上游尝试可能仍在扣款，需先查单确认
+	ErrAttemptOpen = errors.New("direct charge upstream attempt still open")
+	// ErrReasonRequired 后台操作必须填写理由
+	ErrReasonRequired = errors.New("direct charge reason required")
+	// ErrInvalidSpec 规格参数不合法
+	ErrInvalidSpec = errors.New("direct charge invalid spec")
+	// ErrRefundFailed 退款登记失败（例如超出退款期限），任务已加退款锁
+	ErrRefundFailed = errors.New("direct charge refund failed")
+	// ErrSpecDuplicate SKU 已绑定其它规格
+	ErrSpecDuplicate = errors.New("direct charge spec duplicate")
 )
 
 // OrderRejectedError 订单模块拒绝创建订单（风控、商品下架等），MessageKey 为可直接返回给用户的 i18n key

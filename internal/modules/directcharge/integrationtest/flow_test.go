@@ -52,6 +52,8 @@ type fakeOrders struct {
 	canceled   []uint
 	delivered  map[uint]string
 	deliverErr error
+	refunded   map[uint]string
+	refundErr  error
 }
 
 func (f *fakeOrders) CreateDirectChargeOrder(req directchargecontract.OrderRequest) (*directchargecontract.OrderRef, error) {
@@ -123,7 +125,7 @@ func setup(t *testing.T) *env {
 			AccountID: "Buyer@Example.com", CurrentPlan: "free", PreflightToken: "pf-token",
 			Quotes: map[string]directchargecontract.UpstreamQuote{"plus": {Currency: "PHP", AmountMinor: 98214, Exponent: 2}},
 		}},
-		orders: &fakeOrders{status: map[uint]string{}, delivered: map[uint]string{}},
+		orders: &fakeOrders{status: map[uint]string{}, delivered: map[uint]string{}, refunded: map[uint]string{}},
 		alerts: &fakeAlerter{},
 	}
 	e.service = directchargeapp.NewService(directchargeapp.Options{

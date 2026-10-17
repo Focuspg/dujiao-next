@@ -52,6 +52,15 @@ func (f *fakeOrders) Deliver(orderID uint, payload string) error {
 	return nil
 }
 
+func (f *fakeOrders) Refund(orderID uint, remark string) error {
+	if f.refundErr != nil {
+		return f.refundErr
+	}
+	f.refunded[orderID] = remark
+	f.status[orderID] = constants.OrderStatusRefunded
+	return nil
+}
+
 type fakeAlerter struct{ alerts []directchargecontract.Alert }
 
 func (f *fakeAlerter) Alert(alert directchargecontract.Alert) error {

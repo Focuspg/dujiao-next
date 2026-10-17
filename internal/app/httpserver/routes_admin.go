@@ -19,6 +19,7 @@ import (
 	contenttransport "github.com/dujiao-next/internal/modules/content/transport/http"
 	coupontransport "github.com/dujiao-next/internal/modules/coupon/transport/http"
 	dashboardtransport "github.com/dujiao-next/internal/modules/dashboard/transport/http"
+	directchargehttp "github.com/dujiao-next/internal/modules/directcharge/transport/http"
 	fulfillmenttransport "github.com/dujiao-next/internal/modules/fulfillment/transport/http"
 	giftcardtransport "github.com/dujiao-next/internal/modules/giftcard/transport/http"
 	adminauthtransport "github.com/dujiao-next/internal/modules/identity/adminauth/transport/http"
@@ -189,6 +190,9 @@ func registerAdminRoutes(
 
 	// 采购单管理
 	procurementtransport.RegisterAdminRoutes(authorized, adminProcurementHandler)
+
+	// 账号代充：充值规格与任务
+	directchargehttp.RegisterAdminRoutes(authorized, directchargehttp.NewAdminHandler(c.DirectChargeService))
 
 	// 对账管理
 	reconciliationtransport.RegisterAdminRoutes(paymentProtected, reconciliationtransport.NewAdminHandler(c.ReconciliationService))

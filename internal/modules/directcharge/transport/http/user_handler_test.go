@@ -38,6 +38,19 @@ func (f *fakeService) CreateOrder(directchargeapp.CreateOrderInput) (*directchar
 	return &directchargeapp.CreateOrderResult{OrderNo: "DJ1"}, nil
 }
 
+func (f *fakeService) ResupplyCredential(_ context.Context, input directchargeapp.ResupplyCredentialInput) (*directchargeapp.TaskView, error) {
+	f.called = true
+	if f.preflightErr != nil {
+		return nil, f.preflightErr
+	}
+	return &directchargeapp.TaskView{OrderNo: input.OrderNo}, nil
+}
+
+func (f *fakeService) RequestRefund(_ uint, orderNo string) (*directchargeapp.TaskView, error) {
+	f.called = true
+	return &directchargeapp.TaskView{OrderNo: orderNo}, nil
+}
+
 func (f *fakeService) GetOrder(uint, string) (*directchargeapp.TaskView, error) {
 	return nil, directchargecontract.ErrNotFound
 }

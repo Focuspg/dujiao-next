@@ -33,6 +33,8 @@ type Adapter struct {
 	orders    OrderService
 	reader    OrderReader
 	deliverer Deliverer
+	refunder  Refunder
+	emails    StatusEmailer
 	now       func() time.Time
 }
 
