@@ -11,7 +11,7 @@
       leave-to-class="opacity-0"
     >
       <div
-        v-if="visible"
+        v-if="visible && !directCharge"
         class="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]"
         @click="close"
       />
@@ -32,7 +32,7 @@
       leave-to-class="quick-buy-leave-to"
     >
       <div
-        v-if="visible"
+        v-if="visible && !directCharge"
         class="fixed z-50 inset-x-0 bottom-0 md:inset-0 md:flex md:items-center md:justify-center md:p-6"
         @click.self="close"
       >
@@ -583,10 +583,13 @@ const syncSelectedSku = () => {
   selectedSkuId.value = normalizeSkuId(rows[0]?.id)
 }
 
+// 代充商品需在详情页先验证充值账号再下单，不走快捷购买与购物车；
+// 弹窗与遮罩都不渲染，避免跳转时遮罩残留在页面上
+const directCharge = computed(() => isDirectChargeProduct(props.product))
+
 // Reset state when product changes or drawer opens
 watch(() => [props.product, props.visible], () => {
-  // 代充商品需在详情页先验证充值账号再下单，不走快捷购买与购物车
-  if (props.visible && isDirectChargeProduct(props.product)) {
+  if (props.visible && directCharge.value) {
     emit('update:visible', false)
     router.push(`/products/${props.product?.slug}`)
     return
