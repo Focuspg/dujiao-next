@@ -29,6 +29,7 @@ import (
 	paymentdomain "github.com/dujiao-next/internal/modules/payment/domain"
 	procurementdomain "github.com/dujiao-next/internal/modules/procurement/domain"
 	promotiondomain "github.com/dujiao-next/internal/modules/promotion/domain"
+	rechargedomain "github.com/dujiao-next/internal/modules/recharge/domain"
 	reconciliationdomain "github.com/dujiao-next/internal/modules/reconciliation/domain"
 	resellerstore "github.com/dujiao-next/internal/modules/reseller/infrastructure/gormstore"
 	settingsstore "github.com/dujiao-next/internal/modules/settings/infrastructure/gormstore"
@@ -96,6 +97,14 @@ func AutoMigrate() error {
 		&memberleveldomain.MemberLevel{},
 		&memberleveldomain.MemberLevelPrice{},
 		&contentdomain.Media{},
+		&rechargedomain.Spec{},
+		&rechargedomain.Task{},
+		&rechargedomain.AccountLock{},
+		&rechargedomain.TaskLog{},
+		&rechargedomain.Attempt{},
+		&rechargedomain.Credential{},
+		&rechargedomain.Preflight{},
+		&rechargedomain.WebhookEvent{},
 	); err != nil {
 		return err
 	}

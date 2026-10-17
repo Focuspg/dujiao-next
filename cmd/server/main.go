@@ -380,7 +380,7 @@ func runAdminSubcommand(args []string) {
 	}
 	// 重置密码 / 2FA 后需清理鉴权缓存，Redis 不可用不阻断命令
 	_ = cache.InitRedis(&cfg.Redis)
-	admincmd.Run(args)
+	admincmd.Run(args, cfg)
 }
 
 // resolveDefaultAdminCredentials 解析默认管理员初始化凭据（环境变量优先，其次 config.yml）
