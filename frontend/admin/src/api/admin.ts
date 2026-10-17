@@ -20,6 +20,7 @@ import type {
   AdminResellerReasonPayload,
   AdminResellerSiteConfigPayload,
   AdminResellerSystemDomainPayload,
+  AdminDirectChargeSpecInput,
 } from './types'
 
 export interface CaptchaPayload {
@@ -616,6 +617,17 @@ export const adminAPI = {
   downloadProcurementUpstreamPayload: (id: number) => api.get(`/admin/procurement-orders/${id}/upstream-payload/download`, { blob: true }),
   retryProcurementOrder: (id: number) => api.post(`/admin/procurement-orders/${id}/retry`),
   cancelProcurementOrder: (id: number) => api.post(`/admin/procurement-orders/${id}/cancel`),
+
+  // 账号代充
+  getDirectChargeSpecs: () => api.get('/admin/direct-charge/specs'),
+  createDirectChargeSpec: (data: AdminDirectChargeSpecInput) => api.post('/admin/direct-charge/specs', data),
+  updateDirectChargeSpec: (id: number, data: AdminDirectChargeSpecInput) => api.put(`/admin/direct-charge/specs/${id}`, data),
+  getDirectChargeTasks: (params?: Record<string, unknown>) => api.get('/admin/direct-charge/tasks', { params }),
+  getDirectChargeTask: (id: number) => api.get(`/admin/direct-charge/tasks/${id}`),
+  reconcileDirectChargeTask: (id: number) => api.post(`/admin/direct-charge/tasks/${id}/reconcile`),
+  retryDirectChargeTask: (id: number, data: { reason: string }) => api.post(`/admin/direct-charge/tasks/${id}/retry`, data),
+  resolveDirectChargeTask: (id: number, data: { outcome: 'succeeded' | 'failed'; reason: string }) => api.post(`/admin/direct-charge/tasks/${id}/resolve`, data),
+  refundDirectChargeTask: (id: number, data: { remark: string }) => api.post(`/admin/direct-charge/tasks/${id}/refund`, data),
 
   // 对账管理
   runReconciliation: (data: { connection_id: number; type: string; time_range_start: string; time_range_end: string }) => api.post('/admin/reconciliation/run', data),
