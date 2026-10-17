@@ -41,6 +41,8 @@ const (
 	TaskBotNotify = constants.TaskBotNotify
 	// TaskTelegramBroadcast Telegram 群发任务
 	TaskTelegramBroadcast = constants.TaskTelegramBroadcast
+	// TaskDirectChargeCycle 账号代充后台推进任务
+	TaskDirectChargeCycle = constants.TaskDirectChargeCycle
 )
 
 // OrderStatusEmailPayload 订单状态邮件任务载荷
@@ -159,6 +161,11 @@ func NewResellerConfirmLedgerTask() *asynq.Task {
 // NewUpstreamSyncStockTask 创建上游库存同步任务
 func NewUpstreamSyncStockTask() *asynq.Task {
 	return asynq.NewTask(TaskUpstreamSyncStock, nil)
+}
+
+// NewDirectChargeCycleTask 创建账号代充后台推进任务
+func NewDirectChargeCycleTask() *asynq.Task {
+	return asynq.NewTask(TaskDirectChargeCycle, nil)
 }
 
 // NewProcurementSyncAcceptedTask 创建采购单定时巡检任务

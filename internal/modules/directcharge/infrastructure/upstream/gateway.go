@@ -11,28 +11,38 @@ import (
 )
 
 type Gateway struct {
-	client *zovocard.Client
+	client        *zovocard.Client
+	webhookSecret string
 }
 
 var _ directchargecontract.Upstream = (*Gateway)(nil)
 
-// New 返回供应商端口；client 为 nil（未配置）时返回 nil，用例会按未启用处理
-func New(client *zovocard.Client) directchargecontract.Upstream {
+// New 返回供应商端口；client 为 nil（未配置）时返回 nil，用例会按未启用处理。
+// webhookSecret 为空时拒绝所有回调。
+func New(client *zovocard.Client, webhookSecret string) directchargecontract.Upstream {
 	if client == nil {
 		return nil
 	}
-	return &Gateway{client: client}
+	return &Gateway{client: client, webhookSecret: webhookSecret}
+}
+
+func toCredential(mode, value string) (zovocard.Credential, error) {
+	credential := zovocard.Credential{Mode: mode}
+	switch mode {
+	case zovocard.CredentialModeSession:
+		credential.Session = value
+	case zovocard.CredentialModeAccessToken:
+		credential.AccessToken = value
+	default:
+		return zovocard.Credential{}, directchargecontract.ErrCredentialUnsupported
+	}
+	return credential, nil
 }
 
 func (g *Gateway) Preflight(ctx context.Context, request directchargecontract.UpstreamPreflightRequest) (*directchargecontract.UpstreamPreflight, error) {
-	credential := zovocard.Credential{Mode: request.Mode}
-	switch request.Mode {
-	case zovocard.CredentialModeSession:
-		credential.Session = request.Credential
-	case zovocard.CredentialModeAccessToken:
-		credential.AccessToken = request.Credential
-	default:
-		return nil, directchargecontract.ErrCredentialUnsupported
+	credential, err := toCredential(request.Mode, request.Credential)
+	if err != nil {
+		return nil, err
 	}
 	result, err := g.client.Preflight(ctx, zovocard.PreflightRequest{
 		Product:         request.Product,

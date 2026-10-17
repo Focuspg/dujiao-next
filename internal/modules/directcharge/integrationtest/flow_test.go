@@ -25,6 +25,12 @@ type fakeUpstream struct {
 	result *directchargecontract.UpstreamPreflight
 	err    error
 	calls  int
+
+	createFn func(req directchargecontract.UpstreamOrderRequest) (*directchargecontract.UpstreamOrder, error)
+	created  []directchargecontract.UpstreamOrderRequest
+	getFn    func(id int64) (*directchargecontract.UpstreamOrder, error)
+	findFn   func(clientRequestID string) (*directchargecontract.UpstreamOrder, error)
+	event    *directchargecontract.UpstreamEvent
 }
 
 func (f *fakeUpstream) Preflight(_ context.Context, req directchargecontract.UpstreamPreflightRequest) (*directchargecontract.UpstreamPreflight, error) {
@@ -40,10 +46,12 @@ func (f *fakeUpstream) Preflight(_ context.Context, req directchargecontract.Ups
 }
 
 type fakeOrders struct {
-	nextID    uint
-	status    map[uint]string
-	createErr error
-	canceled  []uint
+	nextID     uint
+	status     map[uint]string
+	createErr  error
+	canceled   []uint
+	delivered  map[uint]string
+	deliverErr error
 }
 
 func (f *fakeOrders) CreateDirectChargeOrder(req directchargecontract.OrderRequest) (*directchargecontract.OrderRef, error) {
@@ -76,6 +84,7 @@ type env struct {
 	service  *directchargeapp.Service
 	upstream *fakeUpstream
 	orders   *fakeOrders
+	alerts   *fakeAlerter
 	spec     *directchargedomain.Spec
 	now      time.Time
 }
@@ -90,6 +99,7 @@ func setup(t *testing.T) *env {
 	if err := db.AutoMigrate(
 		&directchargedomain.Spec{}, &directchargedomain.Task{}, &directchargedomain.AccountLock{},
 		&directchargedomain.TaskLog{}, &directchargedomain.Credential{}, &directchargedomain.Preflight{},
+		&directchargedomain.Attempt{}, &directchargedomain.WebhookEvent{},
 	); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
@@ -113,11 +123,12 @@ func setup(t *testing.T) *env {
 			AccountID: "Buyer@Example.com", CurrentPlan: "free", PreflightToken: "pf-token",
 			Quotes: map[string]directchargecontract.UpstreamQuote{"plus": {Currency: "PHP", AmountMinor: 98214, Exponent: 2}},
 		}},
-		orders: &fakeOrders{status: map[uint]string{}},
+		orders: &fakeOrders{status: map[uint]string{}, delivered: map[uint]string{}},
+		alerts: &fakeAlerter{},
 	}
 	e.service = directchargeapp.NewService(directchargeapp.Options{
 		Enabled: true, Store: gormstore.New(db), Upstream: e.upstream, Vault: v, Orders: e.orders,
-		Now: func() time.Time { return e.now },
+		Alerter: e.alerts, SitePrefix: "t1", Now: func() time.Time { return e.now },
 	})
 	return e
 }

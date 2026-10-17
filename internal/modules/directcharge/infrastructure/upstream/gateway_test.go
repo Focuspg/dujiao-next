@@ -30,7 +30,7 @@ func TestMapError(t *testing.T) {
 }
 
 func TestNewWithoutClientIsNil(t *testing.T) {
-	if New(nil) != nil {
+	if New(nil, "") != nil {
 		t.Fatal("unconfigured upstream must be nil so the service reports disabled")
 	}
 }

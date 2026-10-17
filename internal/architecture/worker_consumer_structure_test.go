@@ -36,6 +36,7 @@ func TestWorkerConsumerIsSplitByJobDomain(t *testing.T) {
 		"handleProcurementPollStatus":       "consumer_upstream.go",
 		"handleProcurementSyncAccepted":     "consumer_upstream.go",
 		"handleDownstreamCallback":          "consumer_upstream.go",
+		"handleDirectChargeCycle":           "consumer_upstream.go",
 		"handleBotNotify":                   "consumer_bot.go",
 		"buildBotNotifyRequestURL":          "consumer_bot.go",
 		"handleTelegramBroadcast":           "consumer_bot.go",

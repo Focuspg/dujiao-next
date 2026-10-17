@@ -7,6 +7,7 @@ import (
 
 	"github.com/dujiao-next/internal/constants"
 	directchargecontract "github.com/dujiao-next/internal/modules/directcharge/contract"
+	fulfillmentdomain "github.com/dujiao-next/internal/modules/fulfillment/domain"
 	orderapp "github.com/dujiao-next/internal/modules/order/application"
 	orderdomain "github.com/dujiao-next/internal/modules/order/domain"
 	orderriskcontract "github.com/dujiao-next/internal/modules/orderrisk/contract"
@@ -23,16 +24,31 @@ type OrderReader interface {
 	GetByID(id uint) (*orderdomain.Order, error)
 }
 
+// Deliverer 交付模块中代充成功后的系统交付
+type Deliverer interface {
+	CreateDirectCharge(orderID uint, payload string) (*fulfillmentdomain.Fulfillment, error)
+}
+
 type Adapter struct {
-	orders OrderService
-	reader OrderReader
-	now    func() time.Time
+	orders    OrderService
+	reader    OrderReader
+	deliverer Deliverer
+	now       func() time.Time
 }
 
 var _ directchargecontract.Orders = (*Adapter)(nil)
 
-func New(orders OrderService, reader OrderReader) *Adapter {
-	return &Adapter{orders: orders, reader: reader, now: time.Now}
+func New(orders OrderService, reader OrderReader, deliverer Deliverer) *Adapter {
+	return &Adapter{orders: orders, reader: reader, deliverer: deliverer, now: time.Now}
+}
+
+// Deliver 代充成功后交付子订单；已交付时交付模块返回成功
+func (a *Adapter) Deliver(orderID uint, payload string) error {
+	if a.deliverer == nil {
+		return errors.New("orderadapter: deliverer is not configured")
+	}
+	_, err := a.deliverer.CreateDirectCharge(orderID, payload)
+	return err
 }
 
 func (a *Adapter) CreateDirectChargeOrder(request directchargecontract.OrderRequest) (*directchargecontract.OrderRef, error) {

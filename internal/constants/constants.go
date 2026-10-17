@@ -399,6 +399,7 @@ const (
 	TaskDownstreamCallback          = "downstream:callback"
 	TaskBotNotify                   = "bot:notify"
 	TaskTelegramBroadcast           = "telegram:broadcast"
+	TaskDirectChargeCycle           = "directcharge:cycle"
 )
 
 // Telegram Bot 群发常量
@@ -555,6 +556,7 @@ const (
 	NotificationBizTypePaymentCallback = "payment_callback"
 	NotificationBizTypeProcurement     = "procurement"
 	NotificationBizTypeReconciliation  = "reconciliation"
+	NotificationBizTypeDirectCharge    = "direct_charge"
 )
 
 // 对账差异类型常量

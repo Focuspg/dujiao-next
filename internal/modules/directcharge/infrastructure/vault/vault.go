@@ -11,7 +11,10 @@ import (
 	"strings"
 
 	appcrypto "github.com/dujiao-next/internal/crypto"
+	directchargecontract "github.com/dujiao-next/internal/modules/directcharge/contract"
 )
+
+var _ directchargecontract.Vault = (*Vault)(nil)
 
 // CurrentKeyVersion 当前密钥版本；轮换时递增并保留旧版本解密能力
 const CurrentKeyVersion = 1
@@ -133,3 +136,21 @@ func (v *Vault) SealCredential(mode, credential, preflightToken string) (string,
 
 // Mask 脱敏账号标识（实现 contract.Vault）
 func (v *Vault) Mask(accountID string) string { return MaskAccount(accountID) }
+
+// OpenCredential 解密凭据与预检令牌（实现 contract.Vault）
+func (v *Vault) OpenCredential(ciphertext string, keyVersion int) (directchargecontract.OpenedCredential, error) {
+	secret, err := v.Open(ciphertext, keyVersion)
+	if err != nil {
+		return directchargecontract.OpenedCredential{}, err
+	}
+	opened := directchargecontract.OpenedCredential{Mode: secret.Mode, PreflightToken: secret.PreflightToken}
+	switch secret.Mode {
+	case "session":
+		opened.Credential = secret.Session
+	case "access_token":
+		opened.Credential = secret.AccessToken
+	default:
+		return directchargecontract.OpenedCredential{}, errors.New("vault: unsupported credential mode")
+	}
+	return opened, nil
+}

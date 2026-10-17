@@ -18,6 +18,9 @@ type Store struct {
 
 var _ directchargecontract.Store = (*Store)(nil)
 
+// errTransitionLost 比较版本失败，用于回滚同一事务内已写入的内容
+var errTransitionLost = errors.New("directcharge: task transition lost")
+
 func New(db *gorm.DB) *Store { return &Store{db: db} }
 
 func (s *Store) SpecBySKU(skuID uint) (*directchargedomain.Spec, error) {

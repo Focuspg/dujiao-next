@@ -158,6 +158,12 @@ func (s *Service) CreateManual(input CreateManualInput) (*fulfillmentdomain.Fulf
 		}
 		return nil, ErrFulfillmentCreateFailed
 	}
+	s.afterDelivered(order, input.OrderID, now)
+	return created, nil
+}
+
+// afterDelivered 交付记录写入后：同步父订单状态、发状态邮件、通知 Bot、触发下游回调。
+func (s *Service) afterDelivered(order *orderdomain.Order, orderID uint, now time.Time) {
 	if s.orderQueue != nil {
 		if order.ParentID != nil {
 			status, syncErr := orderapp.SyncParentStatus(s.orderStore, *order.ParentID, now)
@@ -184,10 +190,10 @@ func (s *Service) CreateManual(input CreateManualInput) (*fulfillmentdomain.Fulf
 				}
 			}
 		} else {
-			if _, err := orderapp.EnqueueStatusEmailTaskIfEligible(s.orderStore, s.orderQueue, s.settingService, s.defaultEmailConfig, input.OrderID, constants.OrderStatusDelivered); err != nil {
+			if _, err := orderapp.EnqueueStatusEmailTaskIfEligible(s.orderStore, s.orderQueue, s.settingService, s.defaultEmailConfig, orderID, constants.OrderStatusDelivered); err != nil {
 				logger.Warnw("fulfillment_enqueue_status_email_failed",
 					"order_id", order.ID,
-					"target_order_id", input.OrderID,
+					"target_order_id", orderID,
 					"status", constants.OrderStatusDelivered,
 					"error", err,
 				)
@@ -195,16 +201,15 @@ func (s *Service) CreateManual(input CreateManualInput) (*fulfillmentdomain.Fulf
 		}
 	}
 	// Telegram 通知：交付完成后推送给用户
-	notifyOrderID := input.OrderID
+	notifyOrderID := orderID
 	if order.ParentID != nil {
 		notifyOrderID = *order.ParentID
 	}
 	go s.NotifyBotOrderFulfilled(order.UserID, notifyOrderID)
 	// B 侧：人工交付完成后触发下游回调
 	if s.downstreamCallbackSvc != nil {
-		s.downstreamCallbackSvc.EnqueueCallback(input.OrderID)
+		s.downstreamCallbackSvc.EnqueueCallback(orderID)
 	}
-	return created, nil
 }
 
 // CreateAuto 自动交付
