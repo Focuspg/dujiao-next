@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"errors"
+	"time"
 
 	jobconsumer "github.com/dujiao-next/internal/app/jobs/consumer"
 	"github.com/dujiao-next/internal/config"
@@ -104,6 +105,17 @@ func registerPeriodicTasks(scheduler *asynq.Scheduler, consumer *jobconsumer.Con
 			} else {
 				logger.Infow("scheduler_register_inventory_alert_check_ok", "entry_id", entryID)
 			}
+		}
+	}
+	if consumer.DirectChargeService != nil && consumer.DirectChargeService.Available() {
+		// 唯一锁避免上一轮未结束时堆积；同一进程内 RunCycle 本身也不会重叠
+		task := queue.NewDirectChargeCycleTask()
+		entryID, err := scheduler.Register("@every 15s", task, asynq.Queue(queue.DefaultQueue),
+			asynq.Unique(2*time.Minute), asynq.MaxRetry(0), asynq.Timeout(10*time.Minute))
+		if err != nil {
+			logger.Warnw("scheduler_register_directcharge_cycle_failed", "error", err)
+		} else {
+			logger.Infow("scheduler_register_directcharge_cycle_ok", "entry_id", entryID)
 		}
 	}
 	if consumer.ProcurementOrderService != nil {

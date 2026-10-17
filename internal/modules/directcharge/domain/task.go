@@ -113,11 +113,13 @@ type Task struct {
 	ErrorKind     string     `gorm:"type:varchar(32);not null;default:''" json:"error_kind"`
 	ErrorMessage  string     `gorm:"type:varchar(500);not null;default:''" json:"error_message"`
 	ActionMessage string     `gorm:"type:varchar(500);not null;default:''" json:"action_message"`
-	PaidAt        *time.Time `json:"paid_at,omitempty"`
-	SubmittedAt   *time.Time `json:"submitted_at,omitempty"`
-	CompletedAt   *time.Time `json:"completed_at,omitempty"`
-	CreatedAt     time.Time  `gorm:"index" json:"created_at"`
-	UpdatedAt     time.Time  `gorm:"index" json:"updated_at"`
+	// AlertedAt 处理超时已提醒站长的时间，避免每轮重复告警
+	AlertedAt   *time.Time `json:"-"`
+	PaidAt      *time.Time `json:"paid_at,omitempty"`
+	SubmittedAt *time.Time `json:"submitted_at,omitempty"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+	CreatedAt   time.Time  `gorm:"index" json:"created_at"`
+	UpdatedAt   time.Time  `gorm:"index" json:"updated_at"`
 }
 
 func (Task) TableName() string { return "directcharge_tasks" }

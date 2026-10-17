@@ -82,6 +82,19 @@ func (c *Consumer) handleProcurementSyncAccepted(_ context.Context, _ *asynq.Tas
 	return nil
 }
 
+// handleDirectChargeCycle 推进账号代充任务：付款激活、提交、查单与补偿扫描。
+func (c *Consumer) handleDirectChargeCycle(ctx context.Context, _ *asynq.Task) error {
+	if c == nil || c.DirectChargeService == nil {
+		logger.Debugw("worker_directcharge_cycle_skip_nil")
+		return nil
+	}
+	if err := c.DirectChargeService.RunCycle(ctx); err != nil {
+		logger.Warnw("worker_directcharge_cycle_failed", "error", err)
+		return err
+	}
+	return nil
+}
+
 // handleDownstreamCallback 处理下游回调发送任务。
 func (c *Consumer) handleDownstreamCallback(ctx context.Context, task *asynq.Task) error {
 	if c == nil || task == nil || c.DownstreamCallbackService == nil {

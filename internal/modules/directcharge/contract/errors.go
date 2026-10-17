@@ -37,3 +37,37 @@ type OrderRejectedError struct {
 func (e *OrderRejectedError) Error() string { return "direct charge order rejected: " + e.MessageKey }
 
 func (e *OrderRejectedError) Unwrap() error { return e.Err }
+
+// 上游错误类别（付款后的提交与查单使用，决定任务下一步）
+const (
+	UpstreamKindCredential  = "credential"   // 凭据失效：等待用户补充
+	UpstreamKindNotEligible = "not_eligible" // 账号不适用：确定失败
+	UpstreamKindRequote     = "requote"      // 报价过期：重新预检
+	UpstreamKindFunds       = "funds"        // 上游余额不足：稍后重试并告警
+	UpstreamKindConfig      = "config"       // 密钥、白名单等配置问题：稍后重试并告警
+	UpstreamKindUnavailable = "unavailable"  // 维护、限流、熔断：稍后重试
+	UpstreamKindNotFound    = "not_found"
+	UpstreamKindRejected    = "rejected" // 其它业务拒绝：人工核验
+	UpstreamKindTransient   = "transient"
+)
+
+// UpstreamError 上游调用失败。Unknown 为 true 表示写请求可能已在上游执行，只能用原请求号重放或查单。
+type UpstreamError struct {
+	Kind    string
+	Code    string
+	Unknown bool
+}
+
+func (e *UpstreamError) Error() string {
+	text := "direct charge upstream error: " + e.Kind
+	if e.Code != "" {
+		text += " (" + e.Code + ")"
+	}
+	if e.Unknown {
+		text += ", result unknown"
+	}
+	return text
+}
+
+// ErrWebhookSignature 回调签名无效
+var ErrWebhookSignature = errors.New("direct charge webhook signature invalid")

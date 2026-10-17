@@ -3,6 +3,7 @@ package application
 
 import (
 	"strings"
+	"sync"
 	"time"
 
 	directchargecontract "github.com/dujiao-next/internal/modules/directcharge/contract"
@@ -18,6 +19,8 @@ type Options struct {
 	Upstream           directchargecontract.Upstream
 	Vault              directchargecontract.Vault
 	Orders             directchargecontract.Orders
+	Alerter            directchargecontract.Alerter
+	SitePrefix         string
 	PreflightTTL       time.Duration
 	CredentialTTL      time.Duration
 	MaxCredentialBytes int
@@ -30,16 +33,22 @@ type Service struct {
 	upstream           directchargecontract.Upstream
 	vault              directchargecontract.Vault
 	orders             directchargecontract.Orders
+	alerter            directchargecontract.Alerter
+	sitePrefix         string
 	preflightTTL       time.Duration
 	credentialTTL      time.Duration
 	maxCredentialBytes int
 	now                func() time.Time
+
+	cycleMu        sync.Mutex
+	alertedOrphans map[uint]bool
 }
 
 func NewService(options Options) *Service {
 	s := &Service{
 		enabled: options.Enabled, store: options.Store, upstream: options.Upstream,
-		vault: options.Vault, orders: options.Orders,
+		vault: options.Vault, orders: options.Orders, alerter: options.Alerter,
+		sitePrefix: strings.TrimSpace(options.SitePrefix), alertedOrphans: map[uint]bool{},
 		preflightTTL: options.PreflightTTL, credentialTTL: options.CredentialTTL,
 		maxCredentialBytes: options.MaxCredentialBytes, now: options.Now,
 	}

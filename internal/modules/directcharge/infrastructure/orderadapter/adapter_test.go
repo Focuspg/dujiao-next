@@ -35,7 +35,7 @@ func TestCreateDirectChargeOrderBuildsSingleItem(t *testing.T) {
 		ID: 1, OrderNo: "DJ1", ExpiresAt: &expires,
 		Children: []orderdomain.Order{{ID: 2, OrderNo: "DJ1-01"}},
 	}}
-	ref, err := New(service, fakeReader{}).CreateDirectChargeOrder(directchargecontract.OrderRequest{UserID: 3, ProductID: 4, SKUID: 5, ClientIP: "1.2.3.4"})
+	ref, err := New(service, fakeReader{}, nil).CreateDirectChargeOrder(directchargecontract.OrderRequest{UserID: 3, ProductID: 4, SKUID: 5, ClientIP: "1.2.3.4"})
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -50,13 +50,13 @@ func TestCreateDirectChargeOrderBuildsSingleItem(t *testing.T) {
 
 func TestCreateErrorsAreMapped(t *testing.T) {
 	service := &fakeOrderService{err: orderriskcontract.ErrTooManyPendingOrders}
-	_, err := New(service, fakeReader{}).CreateDirectChargeOrder(directchargecontract.OrderRequest{UserID: 1})
+	_, err := New(service, fakeReader{}, nil).CreateDirectChargeOrder(directchargecontract.OrderRequest{UserID: 1})
 	var rejected *directchargecontract.OrderRejectedError
 	if !errors.As(err, &rejected) || !rejected.TooMany || rejected.MessageKey != "error.risk_too_many_pending_orders" {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	service.err = errors.New("db down")
-	if _, err := New(service, fakeReader{}).CreateDirectChargeOrder(directchargecontract.OrderRequest{UserID: 1}); !errors.Is(err, directchargecontract.ErrOrderCreateFailed) {
+	if _, err := New(service, fakeReader{}, nil).CreateDirectChargeOrder(directchargecontract.OrderRequest{UserID: 1}); !errors.Is(err, directchargecontract.ErrOrderCreateFailed) {
 		t.Fatalf("unknown error should map to create failed: %v", err)
 	}
 }
@@ -67,7 +67,7 @@ func TestStatusTreatsExpiredUnpaidAsCanceled(t *testing.T) {
 		1: {Status: constants.OrderStatusPendingPayment, ExpiresAt: &past},
 		2: {Status: constants.OrderStatusPaid, ExpiresAt: &past},
 	}
-	adapter := New(&fakeOrderService{}, reader)
+	adapter := New(&fakeOrderService{}, reader, nil)
 	for id, want := range map[uint]string{1: constants.OrderStatusCanceled, 2: constants.OrderStatusPaid, 3: ""} {
 		if got, _ := adapter.Status(id); got != want {
 			t.Errorf("order %d: want %q got %q", id, want, got)

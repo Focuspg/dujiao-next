@@ -14,6 +14,7 @@ import (
 	contentgormstore "github.com/dujiao-next/internal/modules/content/infrastructure/gormstore"
 	dashboardapp "github.com/dujiao-next/internal/modules/dashboard/application"
 	directchargeapp "github.com/dujiao-next/internal/modules/directcharge/application"
+	directchargenotification "github.com/dujiao-next/internal/modules/directcharge/infrastructure/notificationadapter"
 	directchargeorder "github.com/dujiao-next/internal/modules/directcharge/infrastructure/orderadapter"
 	directchargeupstream "github.com/dujiao-next/internal/modules/directcharge/infrastructure/upstream"
 	directchargevault "github.com/dujiao-next/internal/modules/directcharge/infrastructure/vault"
@@ -155,6 +156,7 @@ func (c *Container) newDirectChargeService() *directchargeapp.Service {
 	cfg := c.Config.DirectCharge
 	options := directchargeapp.Options{
 		Store:         c.DirectChargeStore,
+		SitePrefix:    cfg.SitePrefix,
 		PreflightTTL:  time.Duration(cfg.PreflightTTLMinutes) * time.Minute,
 		CredentialTTL: time.Duration(cfg.CredentialTTLMinutes) * time.Minute,
 	}
@@ -178,7 +180,8 @@ func (c *Container) newDirectChargeService() *directchargeapp.Service {
 	}
 	options.Enabled = true
 	options.Vault = vault
-	options.Upstream = directchargeupstream.New(client)
-	options.Orders = directchargeorder.New(c.OrderService, c.OrderStore)
+	options.Upstream = directchargeupstream.New(client, cfg.ZovoCard.WebhookSecret)
+	options.Orders = directchargeorder.New(c.OrderService, c.OrderStore, c.FulfillmentService)
+	options.Alerter = directchargenotification.New(c.NotificationService)
 	return directchargeapp.NewService(options)
 }

@@ -18,3 +18,11 @@ func RegisterUserWriteRoutes(user gin.IRoutes, handler *UserHandler) {
 	user.POST("/direct-charge/preflights", handler.Preflight)
 	user.POST("/direct-charge/orders", handler.CreateOrder)
 }
+
+// RegisterWebhookRoutes 上游回调；不需要登录，签名在用例内校验，调用方负责挂载限流
+func RegisterWebhookRoutes(callbacks gin.IRoutes, handler *WebhookHandler) {
+	if callbacks == nil || handler == nil {
+		panic("directcharge webhook routes: required dependency is nil")
+	}
+	callbacks.POST("/webhooks/zovocard", handler.HandleZovoCard)
+}

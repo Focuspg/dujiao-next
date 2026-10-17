@@ -101,6 +101,7 @@ func TestRouteDomainFilesPreserveTrustBoundaries(t *testing.T) {
 				`directchargehttp.RegisterUserWriteRoutes(directChargeWrite, directChargeHandler)`,
 				`middleware.RateLimitMiddleware(redisClient, directChargeRule, middleware.KeyByUserIDAndIP)`,
 				`paymenttransport.RegisterWebhookRoutes(callbacks, webhookHandler)`,
+				`directchargehttp.RegisterWebhookRoutes(callbacks, directChargeWebhookHandler)`,
 			},
 		},
 		{
