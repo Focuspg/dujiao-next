@@ -67,6 +67,9 @@ services:
     restart: unless-stopped
     env_file:
       - ./secrets/postgres.env
+    environment:
+      # 进入容器后直接运行 psql 即可，无需 -U
+      PGUSER: shop
     # 小内存参数：连接数与缓存都压到够用即可
     command:
       - postgres
