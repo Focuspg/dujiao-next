@@ -1682,6 +1682,7 @@ const messages = {
         fulfillmentType: {
           manual: '人工交付',
           auto: '自动交付',
+          directCharge: '账号代充',
         },
         mappedProduct: '对接商品',
         mappedFulfillmentLocked: '对接商品交付类型由上游管理，不可修改',
@@ -6345,6 +6346,7 @@ const messages = {
         fulfillmentType: {
           manual: '人工交付',
           auto: '自動交付',
+          directCharge: '帳號代充',
         },
         mappedProduct: '對接商品',
         mappedFulfillmentLocked: '對接商品交付類型由上游管理，不可修改',
@@ -11008,6 +11010,7 @@ const messages = {
         fulfillmentType: {
           manual: 'Manual',
           auto: 'Auto',
+          directCharge: 'Direct charge',
         },
         mappedProduct: 'Mapped',
         mappedFulfillmentLocked: 'Fulfillment type is managed by upstream and cannot be changed',

@@ -202,9 +202,15 @@ const purchaseTypeBadgeClass = (product: AdminProduct) => {
 }
 
 const fulfillmentTypeBadgeClass = (product: AdminProduct) => {
+  if (product?.fulfillment_type === 'direct_charge') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   return product?.fulfillment_type === 'auto'
     ? 'border-violet-200 bg-violet-50 text-violet-700'
     : 'border-amber-200 bg-amber-50 text-amber-700'
+}
+
+const fulfillmentTypeLabel = (product: AdminProduct) => {
+  if (product?.fulfillment_type === 'direct_charge') return t('admin.products.fulfillmentType.directCharge')
+  return product?.fulfillment_type === 'auto' ? t('admin.products.fulfillmentType.auto') : t('admin.products.fulfillmentType.manual')
 }
 
 const manualStockBadgeClass = (product: AdminProduct) => {
@@ -655,7 +661,7 @@ watch(
                       {{ product.purchase_type === 'guest' ? t('admin.products.purchaseType.guest') : t('admin.products.purchaseType.member') }}
                     </span>
                     <span class="rounded-full border px-2 py-0.5 text-[11px]" :class="fulfillmentTypeBadgeClass(product)">
-                      {{ product.fulfillment_type === 'auto' ? t('admin.products.fulfillmentType.auto') : t('admin.products.fulfillmentType.manual') }}
+                      {{ fulfillmentTypeLabel(product) }}
                     </span>
                     <span
                       v-if="product.is_mapped"

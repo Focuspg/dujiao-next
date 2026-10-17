@@ -863,6 +863,7 @@ watch(
               <SelectContent>
                 <SelectItem value="manual">{{ t('admin.products.fulfillmentType.manual') }}</SelectItem>
                 <SelectItem value="auto">{{ t('admin.products.fulfillmentType.auto') }}</SelectItem>
+                <SelectItem value="direct_charge">{{ t('admin.products.fulfillmentType.directCharge') }}</SelectItem>
               </SelectContent>
             </Select>
             <p v-if="editingIsMapped" class="mt-1 text-xs text-indigo-600">{{ t('admin.products.mappedFulfillmentLocked') }}</p>

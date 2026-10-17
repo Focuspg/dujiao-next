@@ -156,3 +156,32 @@ func TestPublicProductResponseRangeModeReturnsBucketOnly(t *testing.T) {
 		t.Fatalf("expected sku manual stock to be masked, got exact value %d", sku.ManualStockTotal)
 	}
 }
+
+func TestPublicProductResponseDirectChargeIsNotSoldOut(t *testing.T) {
+	h := &PublicHandler{}
+	product := &productdomain.Product{
+		ID:              1,
+		FulfillmentType: constants.FulfillmentTypeDirectCharge,
+		SKUs: []productdomain.ProductSKU{
+			{
+				ID:       11,
+				SKUCode:  productdomain.DefaultSKUCode,
+				IsActive: true,
+			},
+		},
+	}
+
+	resp, err := h.decoratePublicProduct(product, nil)
+	if err != nil {
+		t.Fatalf("decoratePublicProduct failed: %v", err)
+	}
+	if resp.IsSoldOut || resp.StockStatus != constants.ProductStockStatusUnlimited {
+		t.Fatalf("direct charge product must not be sold out, got status=%q sold_out=%v", resp.StockStatus, resp.IsSoldOut)
+	}
+	if len(resp.SKUs) != 1 {
+		t.Fatalf("expected 1 sku, got %d", len(resp.SKUs))
+	}
+	if resp.SKUs[0].IsSoldOut || resp.SKUs[0].StockStatus != constants.ProductStockStatusUnlimited {
+		t.Fatalf("direct charge sku must not be sold out, got status=%q sold_out=%v", resp.SKUs[0].StockStatus, resp.SKUs[0].IsSoldOut)
+	}
+}
