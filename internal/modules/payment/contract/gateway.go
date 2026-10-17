@@ -50,6 +50,41 @@ type GatewayQueryResult struct {
 	Payload     jsonmap.JSON
 }
 
+// GatewayOrderQueryResult 是按商户支付单号主动查单的结果。
+// Abnormal 为 true 时网关状态既非待支付也非已支付（已退款、冻结、预授权等），
+// Status 保持 pending，调用方不得据此推进订单，应转人工核对。
+type GatewayOrderQueryResult struct {
+	GatewayCallbackResult
+	GatewayStatus string
+	Abnormal      bool
+}
+
+// 网关退款状态。
+const (
+	GatewayRefundStatusSucceeded = "succeeded"
+	GatewayRefundStatusFailed    = "failed"
+)
+
+// GatewayRefundInput 是原路退款输入。RefundNo 是商户退款单号，同一笔退款重试必须复用。
+// Amount/Currency 必须是当初实际提交给网关的金额与币种（payment.Amount/Currency）。
+type GatewayRefundInput struct {
+	OrderNo     string
+	ProviderRef string
+	RefundNo    string
+	Amount      money.Amount
+	Currency    string
+}
+
+// GatewayRefundResult 是退款或退款查询结果。
+type GatewayRefundResult struct {
+	RefundNo          string
+	ProviderRefundRef string
+	ProviderRef       string
+	Status            string
+	Amount            money.Amount
+	Payload           jsonmap.JSON
+}
+
 // GatewayCallbackResult 是同步回调或异步 Webhook 的标准结果。
 type GatewayCallbackResult struct {
 	OrderNo     string
@@ -81,6 +116,20 @@ type GatewayProvider interface {
 type GatewayCapturer interface {
 	GatewayProvider
 	QueryPayment(ctx context.Context, cfg jsonmap.JSON, providerRef string) (*GatewayQueryResult, error)
+}
+
+// GatewayOrderQuerier 按商户支付单号（GatewayOrderNo）主动查单，用于补偿丢失或延迟的异步通知。
+type GatewayOrderQuerier interface {
+	GatewayProvider
+	QueryPaymentByOrderNo(ctx context.Context, cfg jsonmap.JSON, orderNo string) (*GatewayOrderQueryResult, error)
+}
+
+// GatewayRefunder 原路退款能力。Refund 返回 ErrGatewayRequestFailed（且不含 ErrGatewayRejected）时结果未知，
+// 必须先 QueryRefund 确认，再决定是否用同一 RefundNo 重试。
+type GatewayRefunder interface {
+	GatewayProvider
+	Refund(ctx context.Context, cfg jsonmap.JSON, input GatewayRefundInput) (*GatewayRefundResult, error)
+	QueryRefund(ctx context.Context, cfg jsonmap.JSON, refundNo string) (*GatewayRefundResult, error)
 }
 
 type GatewayWebhooker interface {

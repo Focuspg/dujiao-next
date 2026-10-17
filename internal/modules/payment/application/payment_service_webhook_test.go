@@ -3,8 +3,17 @@ package application
 import (
 	"errors"
 	"testing"
+	"time"
+
+	paymentcontract "github.com/dujiao-next/internal/modules/payment/contract"
+
+	paymentdomain "github.com/dujiao-next/internal/modules/payment/domain"
 
 	"github.com/dujiao-next/internal/constants"
+	"github.com/dujiao-next/internal/shared/jsonmap"
+	"github.com/dujiao-next/internal/shared/money"
+
+	"github.com/shopspring/decimal"
 )
 
 func TestSupportsBlindWebhookCandidateMatching(t *testing.T) {
@@ -54,5 +63,64 @@ func TestHandlePaypalWebhookRequiresChannelID(t *testing.T) {
 	})
 	if !errors.Is(err, ErrPaymentInvalid) {
 		t.Fatalf("expected ErrPaymentInvalid for paypal without channel_id, got: %v", err)
+	}
+}
+
+// fixedCallbackVerifier 跳过验签，直接返回预设的回调事实。
+type fixedCallbackVerifier struct {
+	emptyProviderRefProvider
+	result paymentcontract.GatewayCallbackResult
+}
+
+func (v fixedCallbackVerifier) VerifyCallback(jsonmap.JSON, map[string][]string, []byte) (*paymentcontract.GatewayCallbackResult, error) {
+	result := v.result
+	return &result, nil
+}
+
+func TestEpaySyncCallbackRejectsProviderRefMismatch(t *testing.T) {
+	svc, db := setupPaymentServiceWalletTest(t)
+	channel, order := createFeePolicyOrderFixture(t, db, "Epay Gateway", "DJ-EPAY-REF")
+	if err := db.Model(channel).Updates(map[string]interface{}{
+		"provider_type": constants.PaymentProviderEpay, "channel_type": constants.PaymentChannelTypeAlipay,
+	}).Error; err != nil {
+		t.Fatalf("switch channel to epay: %v", err)
+	}
+	channel.ProviderType = constants.PaymentProviderEpay
+	channel.ChannelType = constants.PaymentChannelTypeAlipay
+	now := time.Now()
+	payment := &paymentdomain.Payment{
+		OrderID: order.ID, ChannelID: channel.ID, ProviderType: channel.ProviderType, ChannelType: channel.ChannelType,
+		InteractionMode: channel.InteractionMode, Amount: money.FromDecimal(decimal.NewFromInt(100)),
+		Currency: "CNY", Status: constants.PaymentStatusPending, GatewayOrderNo: "DJP-EPAY-REF",
+		ProviderRef: "T-CREATED", CreatedAt: now, UpdatedAt: now,
+	}
+	if err := db.Create(payment).Error; err != nil {
+		t.Fatalf("create payment: %v", err)
+	}
+	callback := paymentcontract.GatewayCallbackResult{
+		OrderNo: "DJP-EPAY-REF", ProviderRef: "T-OTHER", Status: constants.PaymentStatusSuccess,
+		Amount: payment.Amount, Currency: "CNY",
+	}
+	registerTestGateway(t, svc, channel.ProviderType, channel.ChannelType, fixedCallbackVerifier{result: callback})
+
+	if _, err := svc.HandleSyncCallback(channel, nil, nil); !errors.Is(err, ErrPaymentInvalid) {
+		t.Fatalf("mismatched trade_no: err = %v, want ErrPaymentInvalid", err)
+	}
+	var stored paymentdomain.Payment
+	if err := db.First(&stored, payment.ID).Error; err != nil {
+		t.Fatalf("reload payment: %v", err)
+	}
+	if stored.Status != constants.PaymentStatusPending || stored.ProviderRef != "T-CREATED" {
+		t.Fatalf("payment changed after rejected callback: %+v", stored)
+	}
+
+	callback.ProviderRef = "T-CREATED"
+	registerTestGateway(t, svc, channel.ProviderType, channel.ChannelType, fixedCallbackVerifier{result: callback})
+	updated, err := svc.HandleSyncCallback(channel, nil, nil)
+	if err != nil {
+		t.Fatalf("matching trade_no: %v", err)
+	}
+	if updated.Status != constants.PaymentStatusSuccess {
+		t.Fatalf("status = %s", updated.Status)
 	}
 }

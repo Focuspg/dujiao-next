@@ -306,6 +306,10 @@ func VerifyCallback(cfg *Config, form map[string][]string) error {
 		if len(values) == 0 {
 			continue
 		}
+		// 同名参数出现多次时无法确定网关签的是哪一个，直接拒绝，避免拼接注入。
+		if len(values) > 1 {
+			return ErrSignatureInvalid
+		}
 		params[key] = values[0]
 	}
 	content := buildSignContent(params)
@@ -343,9 +347,7 @@ func createV2(ctx context.Context, cfg *Config, input CreateInput, payType strin
 	if cfg.PrivateKey == "" {
 		return nil, ErrConfigInvalid
 	}
-	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	params := map[string]string{
-		"pid":          cfg.MerchantID,
 		"method":       cfg.Method,
 		"type":         payType,
 		"out_trade_no": input.OrderNo,
@@ -354,50 +356,28 @@ func createV2(ctx context.Context, cfg *Config, input CreateInput, payType strin
 		"name":         input.Subject,
 		"money":        input.Amount,
 		"clientip":     input.ClientIP,
-		"timestamp":    timestamp,
 	}
-	signContent := buildSignContent(params)
-	sign, err := signRSA(signContent, cfg.PrivateKey)
+	raw, err := callV2(ctx, cfg, cfg.APIPath, params)
 	if err != nil {
-		return nil, ErrSignatureGenerate
-	}
-	params["sign"] = sign
-	params["sign_type"] = cfg.SignType
-
-	endpoint := buildEndpoint(cfg.GatewayURL, cfg.APIPath)
-	respBytes, err := postForm(ctx, endpoint, params)
-	if err != nil {
-		return nil, ErrRequestFailed
-	}
-	respBytes, err = normalizeResponseBody(respBytes)
-	if err != nil {
-		return nil, ErrResponseInvalid
-	}
-
-	var raw map[string]interface{}
-	_ = json.Unmarshal(respBytes, &raw)
-	var resp struct {
-		Code    int    `json:"code"`
-		Msg     string `json:"msg"`
-		TradeNo string `json:"trade_no"`
-		PayType string `json:"pay_type"`
-		PayInfo string `json:"pay_info"`
-	}
-	if err := json.Unmarshal(respBytes, &resp); err != nil {
-		return nil, ErrResponseInvalid
-	}
-	if resp.Code != 0 {
-		return nil, fmt.Errorf("%w: %s", ErrResponseInvalid, resp.Msg)
+		return nil, err
 	}
 	result := &CreateResult{
-		TradeNo: strings.TrimSpace(resp.TradeNo),
-		PayType: strings.TrimSpace(resp.PayType),
+		TradeNo: responseValue(raw, "trade_no"),
+		PayType: responseValue(raw, "pay_type"),
 		Raw:     raw,
 	}
-	if strings.EqualFold(result.PayType, constants.EpayPayTypeQRCode) {
-		result.QRCode = strings.TrimSpace(resp.PayInfo)
-	} else {
-		result.PayURL = strings.TrimSpace(resp.PayInfo)
+	payInfo := responseValue(raw, "pay_info")
+	if result.TradeNo == "" || payInfo == "" {
+		return nil, fmt.Errorf("%w: trade_no or pay_info missing", ErrResponseInvalid)
+	}
+	// 只接受站内能安全展示的两种形态：跳转链接与二维码。html/jsapi/urlscheme 等需要把渠道 method 配成 jump。
+	switch strings.ToLower(result.PayType) {
+	case epayPayTypeJump:
+		result.PayURL = payInfo
+	case constants.EpayPayTypeQRCode:
+		result.QRCode = payInfo
+	default:
+		return nil, fmt.Errorf("%w: %s", ErrPayTypeUnsupported, truncateMsg(result.PayType))
 	}
 	return result, nil
 }
@@ -520,9 +500,12 @@ func postForm(ctx context.Context, endpoint string, params map[string]string) ([
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, ErrRequestFailed
 	}
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, epayMaxResponseBytes+1))
 	if err != nil {
 		return nil, err
+	}
+	if len(body) > epayMaxResponseBytes {
+		return nil, ErrResponseInvalid
 	}
 	return body, nil
 }

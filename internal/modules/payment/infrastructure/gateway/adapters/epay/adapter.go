@@ -23,9 +23,9 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// epayAdapter 是 epay 网关的 paymentcontract.GatewayProvider + paymentcontract.GatewayCallbackVerifier 实现。
-// epay 没有主动查询 API，callback 是同步 form POST（不是 JSON webhook），
-// 所以**不**实现 paymentcontract.GatewayCapturer 和 paymentcontract.GatewayWebhooker。
+// epayAdapter 是 epay 网关的 paymentcontract.GatewayProvider + paymentcontract.GatewayCallbackVerifier 实现，
+// V2 渠道另外提供按商户单号查单（GatewayOrderQuerier）与原路退款（GatewayRefunder），见 query_refund.go。
+// callback 是同步 form 请求（不是 JSON webhook），所以**不**实现 paymentcontract.GatewayCapturer 和 paymentcontract.GatewayWebhooker。
 type epayAdapter struct{}
 
 // NewEpayAdapter 实例化 epay adapter。
@@ -247,7 +247,11 @@ func (a *epayAdapter) VerifyCallback(raw jsonmap.JSON, form map[string][]string,
 	amountStr := gatewaycommon.FormValue(form, "money")
 
 	status := constants.PaymentStatusPending
-	if tradeStatus == "TRADE_SUCCESS" || tradeStatus == "TRADE_FINISHED" {
+	switch {
+	case tradeStatus == constants.EpayTradeStatusSuccess:
+		status = constants.PaymentStatusSuccess
+	case tradeStatus == "TRADE_FINISHED" && cfg.EpayVersion != epay.VersionV2:
+		// V2 文档只定义 TRADE_SUCCESS；TRADE_FINISHED 仅为兼容旧版 V1 网关保留。
 		status = constants.PaymentStatusSuccess
 	}
 
@@ -278,6 +282,9 @@ func mapEpayError(err error) error {
 	switch {
 	case errors.Is(err, epay.ErrConfigInvalid):
 		return fmt.Errorf("%w: %v", paymentcontract.ErrGatewayConfigInvalid, err)
+	case errors.Is(err, epay.ErrPayTypeUnsupported), errors.Is(err, epay.ErrVersionUnsupported):
+		// 网关返回了站内无法展示的 pay_type（需把 method 配成 jump），或 V1 渠道调用了只有 V2 才有的能力。
+		return fmt.Errorf("%w: %v", paymentcontract.ErrGatewayConfigInvalid, err)
 	case errors.Is(err, epay.ErrChannelTypeNotOK):
 		// P1.2a Task 1 加的 paymentcontract.ErrGatewayUnsupportedChannel 就是给这个用的
 		return fmt.Errorf("%w: %v", paymentcontract.ErrGatewayUnsupportedChannel, err)
@@ -288,6 +295,8 @@ func mapEpayError(err error) error {
 		return fmt.Errorf("%w: %v", paymentcontract.ErrGatewaySignatureInvalid, err)
 	case errors.Is(err, epay.ErrRequestFailed):
 		return fmt.Errorf("%w: %v", paymentcontract.ErrGatewayRequestFailed, err)
+	case errors.Is(err, epay.ErrRejected):
+		return fmt.Errorf("%w: %w: %v", paymentcontract.ErrGatewayResponseInvalid, paymentcontract.ErrGatewayRejected, err)
 	case errors.Is(err, epay.ErrResponseInvalid):
 		return fmt.Errorf("%w: %v", paymentcontract.ErrGatewayResponseInvalid, err)
 	default:

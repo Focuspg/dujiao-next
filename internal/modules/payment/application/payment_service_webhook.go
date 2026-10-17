@@ -58,6 +58,13 @@ func (s *PaymentService) HandleSyncCallback(
 	if err != nil {
 		return nil, err
 	}
+	if epayProviderRefConflict(channel, payment, result) {
+		paymentLogger("payment_id", payment.ID, "channel_id", channel.ID).Warnw("payment_callback_provider_ref_mismatch",
+			"stored_provider_ref", payment.ProviderRef,
+			"callback_provider_ref", strings.TrimSpace(result.ProviderRef),
+		)
+		return nil, ErrPaymentInvalid
+	}
 
 	payload := jsonmap.JSON{}
 	if result.Payload != nil {
@@ -76,6 +83,17 @@ func (s *PaymentService) HandleSyncCallback(
 		Payload:     payload,
 	}
 	return s.HandleCallback(callbackInput)
+}
+
+// epayProviderRefConflict 易支付下单时已拿到网关单号，回调里的 trade_no 必须与之一致，
+// 防止同一商户单号被另一笔网关交易冒认。跳转模式下单时没有网关单号，不做比对。
+func epayProviderRefConflict(channel *paymentdomain.PaymentChannel, payment *paymentdomain.Payment, result *paymentcontract.GatewayCallbackResult) bool {
+	if !strings.EqualFold(strings.TrimSpace(channel.ProviderType), constants.PaymentProviderEpay) {
+		return false
+	}
+	stored := strings.TrimSpace(payment.ProviderRef)
+	incoming := strings.TrimSpace(result.ProviderRef)
+	return stored != "" && incoming != "" && stored != incoming
 }
 
 // HandlePaypalWebhook 处理 PayPal webhook。
