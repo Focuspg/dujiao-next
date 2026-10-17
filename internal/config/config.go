@@ -33,6 +33,7 @@ type Config struct {
 	Captcha      CaptchaConfig      `mapstructure:"captcha"`
 	Web          WebConfig          `mapstructure:"web"`
 	Reseller     ResellerConfig     `mapstructure:"reseller"`
+	DirectCharge DirectChargeConfig `mapstructure:"direct_charge"`
 }
 
 // AppConfig 应用级配置
@@ -302,6 +303,32 @@ type ResellerConfig struct {
 	SettlementConfirmDays int `mapstructure:"settlement_confirm_days"`
 }
 
+// DirectChargeConfig 账号代充（Session 直充）配置。
+// 密钥只放配置文件或环境变量，不入库；VaultKey 必须与 app.secret_key 不同，用于加密用户凭据。
+type DirectChargeConfig struct {
+	Enabled bool `mapstructure:"enabled"`
+	// SitePrefix 上游请求号前缀，区分测试库与生产库，只允许字母数字
+	SitePrefix string `mapstructure:"site_prefix"`
+	// VaultKey 凭据保险箱主密钥
+	VaultKey string `mapstructure:"vault_key"`
+	// FingerprintKey 账号指纹 HMAC 密钥
+	FingerprintKey string `mapstructure:"fingerprint_key"`
+	// CredentialTTLMinutes 加密凭据最长保留时间
+	CredentialTTLMinutes int `mapstructure:"credential_ttl_minutes"`
+	// PreflightTTLMinutes 预检结果可用于下单的时间
+	PreflightTTLMinutes int            `mapstructure:"preflight_ttl_minutes"`
+	ZovoCard            ZovoCardConfig `mapstructure:"zovocard"`
+}
+
+// ZovoCardConfig ZovoCard 开放 API 配置
+type ZovoCardConfig struct {
+	BaseURL        string `mapstructure:"base_url"`
+	APIKey         string `mapstructure:"api_key"`
+	AppID          string `mapstructure:"app_id"`
+	WebhookSecret  string `mapstructure:"webhook_secret"`
+	TimeoutSeconds int    `mapstructure:"timeout_seconds"`
+}
+
 // Load 从 config.yml 加载配置
 func Load() *Config {
 	viper.SetConfigName("config")
@@ -428,6 +455,17 @@ func Load() *Config {
 	viper.SetDefault("reseller.subdomain_base", "")
 	viper.SetDefault("reseller.self_apply_enabled", true)
 	viper.SetDefault("reseller.settlement_confirm_days", 7)
+	viper.SetDefault("direct_charge.enabled", false)
+	viper.SetDefault("direct_charge.site_prefix", "s")
+	viper.SetDefault("direct_charge.vault_key", "")
+	viper.SetDefault("direct_charge.fingerprint_key", "")
+	viper.SetDefault("direct_charge.credential_ttl_minutes", 30)
+	viper.SetDefault("direct_charge.preflight_ttl_minutes", 10)
+	viper.SetDefault("direct_charge.zovocard.base_url", "https://sandbox.zovocard.com/openapi/v1")
+	viper.SetDefault("direct_charge.zovocard.api_key", "")
+	viper.SetDefault("direct_charge.zovocard.app_id", "")
+	viper.SetDefault("direct_charge.zovocard.webhook_secret", "")
+	viper.SetDefault("direct_charge.zovocard.timeout_seconds", 30)
 
 	// 环境变量支持
 	viper.AutomaticEnv()                                   // 自动读取环境变量

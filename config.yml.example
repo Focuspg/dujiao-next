@@ -189,3 +189,27 @@ web:
   # 强烈建议改成不易猜测的字符串以降低自动化扫描风险
   # 例如: "/dj-mgmt-7x9k2" 或 "/console-private"
   admin_path: "/admin"
+
+# 账号代充（Session 直充，对接 ZovoCard 开放 API）
+direct_charge:
+  enabled: false
+  # 上游请求号前缀（只允许字母数字），测试库与生产库请使用不同值
+  site_prefix: "s"
+  # 凭据保险箱主密钥：务必与 app.secret_key 不同，建议 32 位以上随机串；更换后未处理的加密凭据将无法解密
+  vault_key: ""
+  # 账号指纹 HMAC 密钥：用于识别同一目标账号，设置后不要更换
+  fingerprint_key: ""
+  # 加密凭据最长保留分钟数，上游受理后会提前清理
+  credential_ttl_minutes: 30
+  # 预检结果可用于下单的分钟数（GPT 预检票约 10 分钟且一次性）
+  preflight_ttl_minutes: 10
+  zovocard:
+    # 沙盒：https://sandbox.zovocard.com/openapi/v1；生产：https://zovocard.com/openapi/v1
+    base_url: "https://sandbox.zovocard.com/openapi/v1"
+    # 开发者页生成的 app_secret（sk_ 开头）；密钥必须配置 IP 白名单为服务器出口 IP
+    api_key: ""
+    # 可选，app_id（ak_ 开头）
+    app_id: ""
+    # 给该 Key 配置回调地址后生成的 webhook_secret（whsec_ 开头）
+    webhook_secret: ""
+    timeout_seconds: 30

@@ -13,6 +13,7 @@ import (
 	channelclientdomain "github.com/dujiao-next/internal/modules/channelclient/domain"
 	contentdomain "github.com/dujiao-next/internal/modules/content/domain"
 	coupondomain "github.com/dujiao-next/internal/modules/coupon/domain"
+	directchargedomain "github.com/dujiao-next/internal/modules/directcharge/domain"
 	downstreamcallbackdomain "github.com/dujiao-next/internal/modules/downstreamcallback/domain"
 	fulfillmentdomain "github.com/dujiao-next/internal/modules/fulfillment/domain"
 	giftcarddomain "github.com/dujiao-next/internal/modules/giftcard/domain"
@@ -96,6 +97,14 @@ func AutoMigrate() error {
 		&memberleveldomain.MemberLevel{},
 		&memberleveldomain.MemberLevelPrice{},
 		&contentdomain.Media{},
+		&directchargedomain.Spec{},
+		&directchargedomain.Task{},
+		&directchargedomain.AccountLock{},
+		&directchargedomain.TaskLog{},
+		&directchargedomain.Attempt{},
+		&directchargedomain.Credential{},
+		&directchargedomain.Preflight{},
+		&directchargedomain.WebhookEvent{},
 	); err != nil {
 		return err
 	}

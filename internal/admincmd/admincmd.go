@@ -17,6 +17,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/dujiao-next/internal/config"
 	"github.com/dujiao-next/internal/constants"
 	auditlogapp "github.com/dujiao-next/internal/modules/auditlog/application"
 	auditloggormstore "github.com/dujiao-next/internal/modules/auditlog/infrastructure/gormstore"
@@ -39,15 +40,18 @@ func Usage() {
   dujiao-api admin reset-2fa --username <name>            重置指定管理员的 2FA
   dujiao-api admin reset-password --username <name> [--password <new>]
                                                           重置管理员密码（超管忘记密码恢复用）
-                                                          不传 --password 时从 stdin 隐藏读入两次确认`)
+                                                          不传 --password 时从 stdin 隐藏读入两次确认
+  dujiao-api admin zovocard-check [--product gpt] [--session-file <path>]
+                                                          用 direct_charge.zovocard 配置检查 ZovoCard 接口连通性；
+                                                          传 --session-file 时额外执行一次账号预检（不下单、不扣款）`)
 }
 
 // Run 分发 admin 子命令。args 是去掉 "admin" 之后的参数（os.Args[2:]）。
-// caller 需先完成 config.Load + gormdb.InitDB。
+// caller 需先完成 config.Load + gormdb.InitDB，并传入已加载的配置。
 //
 // 失败时直接 os.Exit(1)，与原 admin-tool 二进制行为保持一致；这是 CLI 运维
 // 工具的约定（脚本可靠 exit code 判定），不抛出 error 给调用方。
-func Run(args []string) {
+func Run(args []string, cfg *config.Config) {
 	if len(args) < 1 {
 		Usage()
 		os.Exit(1)
@@ -75,6 +79,8 @@ func Run(args []string) {
 			os.Exit(1)
 		}
 		resetPassword(username, password)
+	case "zovocard-check":
+		zovocardCheck(cfg, parseStringFlag(rest, "product"), parseStringFlag(rest, "session-file"))
 	default:
 		Usage()
 		os.Exit(1)
