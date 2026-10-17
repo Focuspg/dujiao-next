@@ -1,0 +1,10 @@
+{$SHOP_DOMAIN} {
+	encode zstd gzip
+
+	@blocked path /.env* /.git/* /config.yml*
+	respond @blocked 404
+
+	reverse_proxy shop:8080 {
+		header_up X-Real-IP {remote_host}
+	}
+}

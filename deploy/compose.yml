@@ -1,0 +1,141 @@
+# 商城生产部署（单机小内存）：Caddy + 商城 + PostgreSQL + Redis。
+# 由 deploy/focusai.sh 管理，变量来自同目录的 .env（镜像标签、域名）与 secrets/ 下的文件。
+# 内存上限按 1G 内存服务器设定；持续使用 swap 时再升级服务器或调整这里。
+
+name: shop
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SHOP_DOMAIN: ${SHOP_DOMAIN:?SHOP_DOMAIN is required}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    # 服务器默认 DNS 偶发解析失败，证书申请与上游请求固定走公共 DNS
+    dns: [1.1.1.1, 8.8.8.8]
+    networks:
+      edge:
+        ipv4_address: 10.77.0.10
+    depends_on:
+      shop:
+        condition: service_healthy
+    mem_limit: 96m
+    logging: *logging
+
+  shop:
+    image: ${SHOP_IMAGE:?SHOP_IMAGE is required}
+    restart: unless-stopped
+    env_file:
+      - ./secrets/shop.env
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+      - ./data/uploads:/app/uploads
+      - ./data/logs:/app/logs
+    dns: [1.1.1.1, 8.8.8.8]
+    networks:
+      - edge
+      - backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    mem_limit: 320m
+    logging: *logging
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file:
+      - ./secrets/postgres.env
+    # 小内存参数：连接数与缓存都压到够用即可
+    command:
+      - postgres
+      - -c
+      - shared_buffers=32MB
+      - -c
+      - effective_cache_size=128MB
+      - -c
+      - work_mem=2MB
+      - -c
+      - maintenance_work_mem=32MB
+      - -c
+      - max_connections=30
+      - -c
+      - max_wal_size=256MB
+      - -c
+      - timezone=Asia/Shanghai
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    mem_limit: 192m
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # 任务队列不能被淘汰：noeviction；开启 AOF，重启后保留排队中的任务
+    command:
+      - redis-server
+      - --maxmemory
+      - 48mb
+      - --maxmemory-policy
+      - noeviction
+      - --appendonly
+      - "yes"
+      - --save
+      - ""
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    mem_limit: 64m
+    logging: *logging
+
+networks:
+  # 对外：Caddy 与商城；固定网段，商城只信任 Caddy 的地址传来的转发头
+  edge:
+    ipam:
+      config:
+        - subnet: 10.77.0.0/24
+          # 动态分配只用后半段，避免占用 Caddy 的固定地址
+          ip_range: 10.77.0.128/25
+  # 对内：数据库与 Redis 不出网、不映射端口
+  backend:
+    internal: true
+
+volumes:
+  caddy_data:
+  caddy_config:
+  pg_data:
+  redis_data:

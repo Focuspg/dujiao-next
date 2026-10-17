@@ -33,7 +33,8 @@ jobs:
         run: |
           bash -n scripts/dujiao-next-manager.sh
           bash -n scripts/tests/dujiao-next-manager_test.sh
-          shellcheck -x -S warning scripts/dujiao-next-manager.sh scripts/tests/dujiao-next-manager_test.sh
+          bash -n deploy/focusai.sh
+          shellcheck -x -S warning scripts/dujiao-next-manager.sh scripts/tests/dujiao-next-manager_test.sh deploy/focusai.sh
 
       - name: Run installer tests
         run: sudo bash scripts/tests/dujiao-next-manager_test.sh

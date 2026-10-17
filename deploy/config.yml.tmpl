@@ -1,0 +1,68 @@
+# 由 deploy/focusai.sh 根据本模板生成，只放非敏感配置；未列出的项使用程序默认值。
+# 密钥、数据库连接串、上游 API Key 等通过 secrets/shop.env 的环境变量注入
+# （键名规则：配置路径的 . 换成 _ 并大写，例如 direct_charge.zovocard.api_key → DIRECT_CHARGE_ZOVOCARD_API_KEY）。
+
+server:
+  host: 0.0.0.0
+  port: 8080
+  mode: release
+  # 只信任 compose 里 Caddy 的固定地址
+  trusted_proxies:
+    - 10.77.0.10/32
+
+log:
+  dir: /app/logs
+  filename: app.log
+  max_size_mb: 50
+  max_backups: 5
+  max_age_days: 30
+  compress: true
+
+database:
+  driver: postgres
+  pool:
+    max_open_conns: 10
+    max_idle_conns: 3
+    conn_max_lifetime_seconds: 1800
+    conn_max_idle_time_seconds: 300
+
+redis:
+  enabled: true
+  host: redis
+  port: 6379
+  db: 0
+  prefix: "dj"
+
+queue:
+  enabled: true
+  host: redis
+  port: 6379
+  db: 1
+  concurrency: 4
+  queues:
+    default: 10
+    critical: 5
+
+cors:
+  allowed_origins:
+    - "https://__SHOP_DOMAIN__"
+
+order:
+  payment_expire_minutes: 15
+  max_refund_days: 30
+
+reseller:
+  enabled: false
+  main_hosts:
+    - "__SHOP_DOMAIN__"
+
+web:
+  admin_path: "__ADMIN_PATH__"
+
+direct_charge:
+  enabled: true
+  site_prefix: "__SITE_PREFIX__"
+  credential_ttl_minutes: 30
+  preflight_ttl_minutes: 10
+  zovocard:
+    timeout_seconds: 30
