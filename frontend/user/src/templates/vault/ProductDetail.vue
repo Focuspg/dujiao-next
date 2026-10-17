@@ -156,7 +156,7 @@
           </div>
 
           <!-- 数量 -->
-          <div class="my-5">
+          <div v-if="!isDirectCharge" class="my-5">
             <div class="mb-2.5 text-[13px] font-bold uppercase tracking-[0.04em] text-muted-foreground">{{ t('productDetail.quantity') }}</div>
             <div class="inline-flex items-center overflow-hidden rounded-full border-2 border-hairline-strong">
               <button type="button" class="grid h-11 w-[42px] place-items-center bg-card text-foreground disabled:opacity-35" :aria-label="t('productDetail.quantity')" :disabled="quantity <= quantityEffectiveMin" @click="quantity = Math.max(quantityEffectiveMin, quantity - 1)"><Minus class="h-[17px] w-[17px]" /></button>
@@ -172,13 +172,14 @@
           <!-- 操作 -->
           <div ref="purchaseActionsRef" class="mt-[18px] flex flex-wrap gap-3">
             <Button v-if="requiresLogin" class="h-12 w-full rounded-full text-[17px] font-bold" @click="goLogin">{{ t('productDetail.loginToBuy') }}</Button>
+            <DirectChargePanel v-else-if="isDirectCharge" class="w-full" :sku-id="selectedSku ? Number(selectedSku.id) : null" :disabled="!canPurchase" />
             <template v-else>
               <Button class="h-12 flex-1 rounded-full text-[17px] font-bold" :disabled="!canPurchase" @click="buyNow"><Zap /> {{ t('productDetail.buyNow') }}</Button>
               <Button variant="outline" class="h-12 rounded-full text-[17px] font-bold" :disabled="!canPurchase" @click="addToCart"><ShoppingCart /> {{ t('productDetail.addToCart') }}</Button>
             </template>
           </div>
 
-          <div class="mt-4 flex items-center gap-3 rounded-md bg-[color:var(--teal-soft)] px-[18px] py-3.5 text-[color:var(--teal-strong)]">
+          <div v-if="!isDirectCharge" class="mt-4 flex items-center gap-3 rounded-md bg-[color:var(--teal-soft)] px-[18px] py-3.5 text-[color:var(--teal-strong)]">
             <TicketCheck class="h-[22px] w-[22px] flex-none" />
             <span class="text-sm font-semibold">{{ t('productDetail.deliveryReassurance') }}</span>
           </div>
@@ -215,7 +216,7 @@
 
       <!-- 移动端固定购买条 -->
       <VaultProductMobileBar
-        :visible="showMobileBar && !!product && !loading"
+        :visible="showMobileBar && !!product && !loading && !isDirectCharge"
         :requires-login="requiresLogin"
         :can-purchase="canPurchase"
         :show-member-price="mobileBarShowMemberPrice"
@@ -256,6 +257,7 @@ import { Button } from '@/components/ui/button'
 import { processHtmlForDisplay } from '../../utils/content'
 import { useProductDetail } from '../../composables/useProductDetail'
 import VaultProductMobileBar from './components/VaultProductMobileBar.vue'
+import DirectChargePanel from '../../components/directcharge/DirectChargePanel.vue'
 
 const { t } = useI18n()
 
@@ -293,7 +295,7 @@ const {
   showSelectedSkuMemberBadge,
   isSkuPurchasable, skuDisplayText, skuStockText,
   quantityEffectiveLimit, quantityEffectiveMin, handleQuantityInput,
-  requiresLogin, requiresSKUSelection, canPurchase, cannotPurchaseReason,
+  isDirectCharge, requiresLogin, requiresSKUSelection, canPurchase, cannotPurchaseReason,
   categoryName, images,
   addToCart, buyNow, goLogin, loadProduct,
   mobileBarShowMemberPrice, mobileBarMemberPriceDisplay,

@@ -35,6 +35,7 @@ type Preflight struct {
 	Ref                string     `gorm:"type:varchar(64);uniqueIndex;not null" json:"ref"` // 返回给前端的随机引用
 	UserID             uint       `gorm:"index;not null" json:"-"`
 	SpecID             uint       `gorm:"index;not null" json:"-"`
+	SpecVersion        int        `gorm:"not null;default:0" json:"-"`
 	SKUID              uint       `gorm:"column:sku_id;not null" json:"sku_id"`
 	Status             string     `gorm:"type:varchar(16);index;not null" json:"status"`
 	AccountFingerprint string     `gorm:"type:varchar(64);index;not null;default:''" json:"-"`

@@ -148,6 +148,8 @@ type CreateOrderInput struct {
 	ManualFormData      map[string]jsonmap.JSON
 	SkipRiskControl     bool // 完全跳过风控（下游订单）
 	SkipIPRiskControl   bool // 跳过 IP 维度风控（渠道/Bot 订单）
+	// DirectCharge 由账号代充流程创建：只允许单个代充商品、数量 1，且不使用优惠券和推广
+	DirectCharge bool
 }
 
 // CreateGuestOrderInput 游客创建订单输入
@@ -239,6 +241,7 @@ func (s *OrderService) CreateOrder(input CreateOrderInput) (*orderdomain.Order, 
 		ManualFormData:      input.ManualFormData,
 		SkipRiskControl:     input.SkipRiskControl,
 		SkipIPRiskControl:   input.SkipIPRiskControl,
+		DirectCharge:        input.DirectCharge,
 	})
 }
 
@@ -288,6 +291,7 @@ type orderCreateParams struct {
 	SkipManualFormCheck      bool
 	SkipRiskControl          bool
 	SkipIPRiskControl        bool
+	DirectCharge             bool
 }
 
 // OrderPreview 订单金额预览

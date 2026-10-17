@@ -14,6 +14,7 @@ import { buildSkuDisplayText, normalizeSkuId } from '../utils/sku'
 import { resolveSkuAvailableStock, resolveSkuStockDisplay, type PublicStockDisplay } from '../utils/publicStock'
 import { useLocalized, useProductLabels } from './useProduct'
 import { toast } from './useToast'
+import { isDirectChargeProduct } from '../utils/directCharge'
 
 /**
  * 商品详情页的全部业务逻辑（数据加载、SKU/数量、促销/会员/批发定价、库存约束、
@@ -300,7 +301,9 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
   }
 
   const purchaseType = computed(() => product.value?.purchase_type || 'member')
-  const requiresLogin = computed(() => purchaseType.value === 'member' && !userAuthStore.isAuthenticated)
+  // 账号代充商品走单独的预检下单流程，只允许登录用户购买，不能加购物车或走普通结算
+  const isDirectCharge = computed(() => isDirectChargeProduct(product.value))
+  const requiresLogin = computed(() => (purchaseType.value === 'member' || isDirectCharge.value) && !userAuthStore.isAuthenticated)
   const requiresSKUSelection = computed(() => activeSkus.value.length > 1 && !selectedSku.value)
   const stockBelowMinPurchase = computed(() => {
     const limit = quantityEffectiveLimit.value
@@ -413,6 +416,7 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
 
   const addToCart = () => {
     if (!product.value) return
+    if (isDirectCharge.value) return
     if (!canPurchase.value) return
     purchaseWarning.value = ''
     if (requiresLogin.value) {
@@ -448,6 +452,7 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
 
   const buyNow = () => {
     purchaseWarning.value = ''
+    if (isDirectCharge.value) return
     if (!canPurchase.value) return
     if (!product.value) return
     if (requiresLogin.value) {
@@ -687,7 +692,7 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
     isSkuPurchasable, skuDisplayText, skuStockText, skuStockBadgeClass,
     quantityEffectiveLimit, quantityEffectiveMin, handleQuantityInput,
     // 购买能力
-    purchaseType, requiresLogin, requiresSKUSelection, canPurchase, cannotPurchaseReason,
+    purchaseType, isDirectCharge, requiresLogin, requiresSKUSelection, canPurchase, cannotPurchaseReason,
     categoryName, images,
     // 动作
     addToCart, buyNow, goLogin, loadProduct,

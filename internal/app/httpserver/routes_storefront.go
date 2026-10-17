@@ -13,6 +13,7 @@ import (
 	categoryhttp "github.com/dujiao-next/internal/modules/catalog/category/transport/http"
 	producthttp "github.com/dujiao-next/internal/modules/catalog/product/transport/http"
 	contenttransport "github.com/dujiao-next/internal/modules/content/transport/http"
+	directchargehttp "github.com/dujiao-next/internal/modules/directcharge/transport/http"
 	giftcardtransport "github.com/dujiao-next/internal/modules/giftcard/transport/http"
 	userauthtransport "github.com/dujiao-next/internal/modules/identity/userauth/transport/http"
 	memberleveltransport "github.com/dujiao-next/internal/modules/memberlevel/transport/http"
@@ -61,11 +62,13 @@ func registerStorefrontRoutes(
 	paymentLatestHandler *paymenttransport.LatestHandler,
 	paymentWriteHandler *paymenttransport.WriteHandler,
 	userWalletHandler *wallettransport.UserHandler,
+	directChargeHandler *directchargehttp.UserHandler,
 	redisClient *redis.Client,
 	loginRule middleware.RateLimitRule,
 	guestReadRule middleware.RateLimitRule,
 	guestWriteRule middleware.RateLimitRule,
 	giftCardRedeemRule middleware.RateLimitRule,
+	directChargeRule middleware.RateLimitRule,
 ) {
 	storefront := apiV1.Group("")
 	storefront.Use(middleware.ResellerTenantMiddleware(c.ResellerDomainResolver))
@@ -154,6 +157,9 @@ func registerStorefrontRoutes(
 		giftCardRedeem := user.Group("", middleware.RateLimitMiddleware(redisClient, giftCardRedeemRule, middleware.KeyByUserIDAndIP))
 		giftcardtransport.RegisterUserRoutes(giftCardRedeem, userGiftCardHandler)
 		affiliatetransport.RegisterUserRoutes(user, affiliateHandler)
+		directchargehttp.RegisterUserReadRoutes(user, directChargeHandler)
+		directChargeWrite := user.Group("", middleware.RateLimitMiddleware(redisClient, directChargeRule, middleware.KeyByUserIDAndIP))
+		directchargehttp.RegisterUserWriteRoutes(directChargeWrite, directChargeHandler)
 
 		resellerConsole := user.Group("/reseller")
 		resellerConsole.Use(middleware.RequireMainTenantForResellerConsole())

@@ -116,3 +116,20 @@ func MaskAccount(accountID string) string {
 	}
 	return string(runes[:2]) + "***" + string(runes[len(runes)-2:])
 }
+
+// SealCredential 加密用户凭据与预检令牌（实现 contract.Vault）
+func (v *Vault) SealCredential(mode, credential, preflightToken string) (string, int, error) {
+	secret := Secret{Mode: mode, PreflightToken: preflightToken}
+	switch mode {
+	case "session":
+		secret.Session = credential
+	case "access_token":
+		secret.AccessToken = credential
+	default:
+		return "", 0, errors.New("vault: unsupported credential mode")
+	}
+	return v.Seal(secret)
+}
+
+// Mask 脱敏账号标识（实现 contract.Vault）
+func (v *Vault) Mask(accountID string) string { return MaskAccount(accountID) }

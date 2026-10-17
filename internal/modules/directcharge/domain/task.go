@@ -81,13 +81,16 @@ type Task struct {
 	ID      uint   `gorm:"primarykey" json:"id"`
 	OrderID uint   `gorm:"uniqueIndex;not null" json:"order_id"` // 子订单（实际含充值商品的订单）
 	OrderNo string `gorm:"type:varchar(64);index;not null" json:"order_no"`
-	UserID  uint   `gorm:"index;not null" json:"user_id"`
-	SpecID  uint   `gorm:"index;not null" json:"spec_id"`
-	SKUID   uint   `gorm:"column:sku_id;index;not null" json:"sku_id"`
-	Status  string `gorm:"type:varchar(32);index;not null" json:"status"`
-	Version int    `gorm:"not null;default:1" json:"version"` // 乐观锁版本，所有状态更新都比较后写入
-	Product string `gorm:"type:varchar(16);not null" json:"product"`
-	Plan    string `gorm:"type:varchar(64);not null" json:"plan"`
+	// ParentOrderID/ParentOrderNo 用户支付和查看的父订单
+	ParentOrderID uint   `gorm:"index;not null;default:0" json:"parent_order_id"`
+	ParentOrderNo string `gorm:"type:varchar(64);index;not null;default:''" json:"parent_order_no"`
+	UserID        uint   `gorm:"index;not null" json:"user_id"`
+	SpecID        uint   `gorm:"index;not null" json:"spec_id"`
+	SKUID         uint   `gorm:"column:sku_id;index;not null" json:"sku_id"`
+	Status        string `gorm:"type:varchar(32);index;not null" json:"status"`
+	Version       int    `gorm:"not null;default:1" json:"version"` // 乐观锁版本，所有状态更新都比较后写入
+	Product       string `gorm:"type:varchar(16);not null" json:"product"`
+	Plan          string `gorm:"type:varchar(64);not null" json:"plan"`
 	// AccountFingerprint 目标账号指纹（服务端密钥 HMAC），用于识别同一账号，不可逆
 	AccountFingerprint string `gorm:"type:varchar(64);index;not null" json:"-"`
 	AccountMasked      string `gorm:"type:varchar(128);not null;default:''" json:"account_masked"`

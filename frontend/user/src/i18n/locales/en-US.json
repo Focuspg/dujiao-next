@@ -171,7 +171,8 @@
     },
     "fulfillmentType": {
       "manual": "Manual delivery",
-      "auto": "Auto fulfillment"
+      "auto": "Auto fulfillment",
+      "direct_charge": "Account top-up"
     },
     "filter": "Filter",
     "closeFilter": "Close filter",
@@ -1738,5 +1739,67 @@
     "authInvalid": "Credentials mismatch, please try again",
     "authSubmit": "Save and search",
     "authClear": "Clear saved info"
+  },
+  "directCharge": {
+    "title": "Account to top up",
+    "intro": "Submit the credential of the account to top up. We verify the account and price before you pay.",
+    "modeLabel": "Credential type",
+    "modes": {
+      "session": "Session",
+      "access_token": "Access Token"
+    },
+    "credentialLabel": "Account credential",
+    "credentialPlaceholder": "Paste the credential, used only for this top-up",
+    "credentialHint": {
+      "session": "After signing in to chatgpt.com, copy the value of the __Secure-next-auth.session-token cookie, or the full JSON containing sessionToken.",
+      "access_token": "Copy the Access Token (starting with eyJ) from a signed-in chatgpt.com session. Access Tokens expire quickly, so pay soon after verifying."
+    },
+    "privacy": "The credential is stored encrypted and destroyed after the top-up finishes or the order closes. We never ask for your password.",
+    "show": "Show",
+    "hide": "Hide",
+    "verify": "Verify account",
+    "verifying": "Verifying…",
+    "reverify": "Use another account",
+    "resultTitle": "Confirm the target account",
+    "account": "Target account",
+    "currentPlan": "Current plan",
+    "targetPlan": "Top-up plan",
+    "expiresIn": "Confirmation valid for {minutes} more minutes",
+    "expired": "The verification has expired, please verify the account again",
+    "confirmAccount": "I confirm this is the account to top up. The account cannot be changed after payment.",
+    "createOrder": "Confirm and pay",
+    "creating": "Creating order…",
+    "tooLong": "The credential is too long",
+    "required": "Please enter the account credential",
+    "skuRequired": "Please select a plan first",
+    "loginRequired": "Sign in to buy a top-up plan"
+  },
+  "directChargeOrder": {
+    "title": "Top-up progress",
+    "account": "Target account",
+    "plan": "Plan",
+    "timeline": "Progress",
+    "status": {
+      "pending_payment": "Awaiting payment",
+      "queued": "Queued",
+      "processing": "Processing",
+      "credential_required": "Credential required",
+      "action_required": "Action required",
+      "verifying": "Verifying result",
+      "succeeded": "Completed",
+      "failed": "Failed",
+      "closed": "Closed"
+    },
+    "statusHint": {
+      "pending_payment": "The top-up starts automatically after payment.",
+      "queued": "Payment received and queued. You can close this page.",
+      "processing": "Activating your plan. Please do not change the account subscription meanwhile.",
+      "credential_required": "The credential expired. Please submit a new credential for the same account.",
+      "action_required": "Action is needed on your account. Follow the instructions or contact support.",
+      "verifying": "We are verifying the result and will email you when done.",
+      "succeeded": "The plan is active. Sign in to your account to check.",
+      "failed": "The top-up did not succeed. Refunds follow the after-sales policy, please contact support.",
+      "closed": "The order was closed without payment and the credential was destroyed."
+    }
   }
 }

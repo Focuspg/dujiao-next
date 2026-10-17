@@ -171,7 +171,8 @@
     },
     "fulfillmentType": {
       "manual": "人工交付",
-      "auto": "自動交付"
+      "auto": "自動交付",
+      "direct_charge": "帳號代充"
     },
     "filter": "篩選",
     "closeFilter": "關閉篩選",
@@ -1738,5 +1739,67 @@
     "authInvalid": "資訊不匹配，請重新輸入",
     "authSubmit": "保存並查詢",
     "authClear": "清除已保存資訊"
+  },
+  "directCharge": {
+    "title": "充值帳號",
+    "intro": "提交要充值的帳號憑證，系統會先驗證帳號與價格，確認無誤後再付款。",
+    "modeLabel": "憑證類型",
+    "modes": {
+      "session": "Session",
+      "access_token": "Access Token"
+    },
+    "credentialLabel": "帳號憑證",
+    "credentialPlaceholder": "貼上憑證內容，僅用於本次充值",
+    "credentialHint": {
+      "session": "登入 chatgpt.com 後，複製名為 __Secure-next-auth.session-token 的 Cookie 值，或包含 sessionToken 的完整 JSON。",
+      "access_token": "複製登入 chatgpt.com 後取得的 Access Token（以 eyJ 開頭）。Access Token 有效期較短，請盡快完成付款。"
+    },
+    "privacy": "憑證加密保存，充值完成或訂單關閉後銷毀；本站不會索取帳號密碼。",
+    "show": "顯示",
+    "hide": "隱藏",
+    "verify": "驗證帳號",
+    "verifying": "正在驗證…",
+    "reverify": "更換帳號",
+    "resultTitle": "請確認充值目標",
+    "account": "目標帳號",
+    "currentPlan": "目前方案",
+    "targetPlan": "充值方案",
+    "expiresIn": "確認有效期剩餘 {minutes} 分鐘",
+    "expired": "驗證結果已過期，請重新驗證帳號",
+    "confirmAccount": "我確認以上是我要充值的帳號，付款後不支援更換帳號",
+    "createOrder": "確認並前往付款",
+    "creating": "正在建立訂單…",
+    "tooLong": "憑證內容過長",
+    "required": "請填寫帳號憑證",
+    "skuRequired": "請先選擇方案",
+    "loginRequired": "登入後才能購買代充方案"
+  },
+  "directChargeOrder": {
+    "title": "充值進度",
+    "account": "目標帳號",
+    "plan": "充值方案",
+    "timeline": "進度紀錄",
+    "status": {
+      "pending_payment": "待付款",
+      "queued": "排隊充值",
+      "processing": "充值處理中",
+      "credential_required": "需要補充憑證",
+      "action_required": "需要帳號端操作",
+      "verifying": "結果核驗中",
+      "succeeded": "充值完成",
+      "failed": "充值失敗",
+      "closed": "已關閉"
+    },
+    "statusHint": {
+      "pending_payment": "付款完成後系統會自動開始充值。",
+      "queued": "已收到付款，正在排隊處理，可以關閉頁面。",
+      "processing": "正在為你的帳號開通，請勿在此期間修改帳號訂閱。",
+      "credential_required": "憑證已失效，請重新提交同一帳號的憑證。",
+      "action_required": "需要你在帳號端完成操作，請依提示處理或聯絡客服。",
+      "verifying": "充值結果正在核驗，核驗完成後會以郵件通知你。",
+      "succeeded": "方案已開通，可登入帳號查看。",
+      "failed": "本次充值未成功，退款將依售後規則處理，請聯絡客服。",
+      "closed": "訂單未付款已關閉，憑證已銷毀。"
+    }
   }
 }
