@@ -59,6 +59,7 @@ func (s *Service) Preflight(ctx context.Context, input PreflightInput) (*Preflig
 
 	result, err := s.upstream.Preflight(ctx, directchargecontract.UpstreamPreflightRequest{
 		Product:         spec.UpstreamProduct,
+		Plan:            spec.UpstreamPlan,
 		PaymentCountry:  spec.PaymentCountry,
 		PaymentCurrency: spec.PaymentCurrency,
 		Mode:            mode,
@@ -140,13 +141,20 @@ func checkPreflight(spec *directchargedomain.Spec, result *directchargecontract.
 		return directchargecontract.UpstreamQuote{}, directchargecontract.ErrNotEligible
 	}
 	if strings.TrimSpace(result.QuoteError) != "" {
+		logger.Warnw("directcharge_preflight_quote_error", "spec_id", spec.ID, "plan", spec.UpstreamPlan, "quote_error", result.QuoteError)
 		return directchargecontract.UpstreamQuote{}, directchargecontract.ErrProductUnavailable
 	}
 	quote, ok := result.Quotes[spec.UpstreamPlan]
 	if !ok || quote.AmountMinor <= 0 {
+		plans := make([]string, 0, len(result.Quotes))
+		for plan := range result.Quotes {
+			plans = append(plans, plan)
+		}
+		logger.Warnw("directcharge_preflight_quote_missing", "spec_id", spec.ID, "plan", spec.UpstreamPlan, "quoted_plans", plans)
 		return directchargecontract.UpstreamQuote{}, directchargecontract.ErrProductUnavailable
 	}
 	if spec.PaymentCurrency != "" && !strings.EqualFold(quote.Currency, spec.PaymentCurrency) {
+		logger.Warnw("directcharge_preflight_currency_mismatch", "spec_id", spec.ID, "plan", spec.UpstreamPlan, "quote_currency", quote.Currency, "spec_currency", spec.PaymentCurrency)
 		return directchargecontract.UpstreamQuote{}, directchargecontract.ErrProductUnavailable
 	}
 	if spec.MaxQuoteMinor > 0 && quote.AmountMinor > spec.MaxQuoteMinor {

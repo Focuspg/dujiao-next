@@ -162,6 +162,7 @@ func (s *Service) ensurePreflightToken(ctx context.Context, task *directchargedo
 	callCtx, cancel := context.WithTimeout(ctx, upstreamCallTimeout)
 	result, err := s.upstream.Preflight(callCtx, directchargecontract.UpstreamPreflightRequest{
 		Product:         spec.UpstreamProduct,
+		Plan:            spec.UpstreamPlan,
 		PaymentCountry:  spec.PaymentCountry,
 		PaymentCurrency: spec.PaymentCurrency,
 		Mode:            secret.Mode,
