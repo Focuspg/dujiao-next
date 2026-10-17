@@ -345,7 +345,7 @@ onMounted(() => fetchTasks(1))
             <div class="space-y-1">
               <div v-for="log in detail?.logs" :key="log.id" class="flex flex-col gap-0.5 border-l-2 border-border pl-3 text-xs sm:flex-row sm:gap-3">
                 <span class="shrink-0 text-muted-foreground">{{ formatDate(log.created_at) }}</span>
-                <span class="shrink-0 font-mono">{{ log.from_status || '-' }} → {{ log.to_status }}</span>
+                <span class="shrink-0">{{ log.from_status ? t('directCharge.status.' + log.from_status) : '-' }} → {{ t('directCharge.status.' + log.to_status) }}</span>
                 <span class="shrink-0 text-muted-foreground">{{ log.actor }}</span>
                 <span class="break-words">{{ log.reason }}</span>
               </div>
