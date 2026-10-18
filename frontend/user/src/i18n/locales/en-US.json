@@ -1751,7 +1751,7 @@
     "credentialLabel": "Account credential",
     "credentialPlaceholder": "Paste the credential, used only for this top-up",
     "credentialHint": {
-      "session": "After signing in to chatgpt.com, copy the value of the __Secure-next-auth.session-token cookie, or the full JSON containing sessionToken.",
+      "session": "After signing in to chatgpt.com, open chatgpt.com/api/auth/session, select all and copy the entire page, then paste it here.",
       "access_token": "Copy the Access Token (starting with eyJ) from a signed-in chatgpt.com session. Access Tokens expire quickly, so pay soon after verifying."
     },
     "privacy": "The credential is stored encrypted and destroyed after the top-up finishes or the order closes. We never ask for your password.",
