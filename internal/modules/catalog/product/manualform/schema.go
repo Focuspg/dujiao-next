@@ -10,6 +10,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/dujiao-next/internal/constants"
 	"github.com/dujiao-next/internal/shared/jsonmap"
 )
 
@@ -50,6 +51,33 @@ type manualFormField struct {
 
 type manualFormSchema struct {
 	Fields []manualFormField
+}
+
+// ResellerActivationSubdomainKey 付费开通代理商品下单时填写二级域名前缀的表单字段。
+const ResellerActivationSubdomainKey = constants.ResellerActivationSubdomainField
+
+// ResellerActivationSchema 付费开通代理商品固定使用的下单表单：只有一个必填的二级域名前缀。
+// 格式在这里先拦一道（3~32 位小写字母、数字、连字符，首尾不能是连字符），占用与保留词由分销模块校验。
+func ResellerActivationSchema() jsonmap.JSON {
+	return jsonmap.JSON{"fields": []interface{}{
+		map[string]interface{}{
+			"key":      ResellerActivationSubdomainKey,
+			"type":     manualFormTypeText,
+			"required": true,
+			"regex":    "^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$",
+			"max_len":  32,
+			"label": map[string]interface{}{
+				"zh-CN": "分站二级域名前缀",
+				"zh-TW": "分站二級網域前綴",
+				"en-US": "Storefront subdomain",
+			},
+			"placeholder": map[string]interface{}{
+				"zh-CN": "例如 xiaoming（3-32 位小写字母、数字或连字符）",
+				"zh-TW": "例如 xiaoming（3-32 位小寫字母、數字或連字號）",
+				"en-US": "e.g. xiaoming (3-32 lowercase letters, digits or hyphens)",
+			},
+		},
+	}}
 }
 
 // ValidateAndNormalize 校验表单结构和提交值，并返回可持久化的规范化快照。

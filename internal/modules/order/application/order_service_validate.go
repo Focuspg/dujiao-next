@@ -1,6 +1,7 @@
 package application
 
 import (
+	"errors"
 	"fmt"
 	"net/mail"
 	"strconv"
@@ -17,6 +18,7 @@ import (
 	coupondomain "github.com/dujiao-next/internal/modules/coupon/domain"
 	promotionapp "github.com/dujiao-next/internal/modules/promotion/application"
 	promotiondomain "github.com/dujiao-next/internal/modules/promotion/domain"
+	resellercontract "github.com/dujiao-next/internal/modules/reseller/contract"
 	"github.com/dujiao-next/internal/shared/jsonmap"
 	"github.com/dujiao-next/internal/shared/jsonslice"
 	"github.com/dujiao-next/internal/shared/money"
@@ -199,8 +201,14 @@ func (s *OrderService) buildOrderResult(input orderCreateParams) (*orderBuildRes
 			fulfillmentType = constants.FulfillmentTypeManual
 		}
 		if fulfillmentType != constants.FulfillmentTypeManual && fulfillmentType != constants.FulfillmentTypeAuto &&
-			fulfillmentType != constants.FulfillmentTypeUpstream && fulfillmentType != constants.FulfillmentTypeDirectCharge {
+			fulfillmentType != constants.FulfillmentTypeUpstream && fulfillmentType != constants.FulfillmentTypeDirectCharge &&
+			fulfillmentType != constants.FulfillmentTypeResellerActivation {
 			return nil, ErrFulfillmentInvalid
+		}
+		// 开通代理商品：只能由登录用户在主站单独购买一份，代理身份归属于下单账号
+		if fulfillmentType == constants.FulfillmentTypeResellerActivation &&
+			(len(mergedItems) != 1 || item.Quantity != 1 || input.IsGuest || input.UserID == 0 || resellerOrder) {
+			return nil, ErrResellerActivationInvalid
 		}
 		// 代充商品必须经代充流程（先预检账号）下单；代充流程也只能买代充商品
 		if (fulfillmentType == constants.FulfillmentTypeDirectCharge) != input.DirectCharge {
@@ -232,6 +240,19 @@ func (s *OrderService) buildOrderResult(input orderCreateParams) (*orderBuildRes
 			submission := resolveManualFormSubmission(manualFormData, product.ID, sku.ID)
 			normalizedSchema, normalizedSubmission, err := manualform.ValidateAndNormalize(product.ManualFormSchemaJSON, submission)
 			if err != nil {
+				return nil, err
+			}
+			manualSchemaSnapshot = normalizedSchema
+			manualSubmission = normalizedSubmission
+		}
+		if !input.SkipManualFormCheck && fulfillmentType == constants.FulfillmentTypeResellerActivation {
+			submission := resolveManualFormSubmission(manualFormData, product.ID, sku.ID)
+			normalizedSchema, normalizedSubmission, err := manualform.ValidateAndNormalize(manualform.ResellerActivationSchema(), submission)
+			if err != nil {
+				return nil, err
+			}
+			subdomain, _ := normalizedSubmission[manualform.ResellerActivationSubdomainKey].(string)
+			if err := s.checkResellerActivation(input.UserID, subdomain); err != nil {
 				return nil, err
 			}
 			manualSchemaSnapshot = normalizedSchema
@@ -544,5 +565,29 @@ func FillOrderItemsFromChildren(order *orderdomain.Order) {
 func FillOrdersItemsFromChildren(orders []orderdomain.Order) {
 	for i := range orders {
 		FillOrderItemsFromChildren(&orders[i])
+	}
+}
+
+// checkResellerActivation 下单前确认分销模式可用、域名前缀可用且下单账号还不是代理，避免付款后才失败。
+func (s *OrderService) checkResellerActivation(userID uint, subdomain string) error {
+	if s.resellerActivation == nil {
+		return ErrResellerActivationInvalid
+	}
+	err := s.resellerActivation.CheckPaidActivation(userID, subdomain)
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, resellercontract.ErrAlreadyReseller):
+		return ErrResellerActivationExists
+	case errors.Is(err, resellercontract.ErrDomainInvalid),
+		errors.Is(err, resellercontract.ErrDomainConflict),
+		errors.Is(err, resellercontract.ErrDomainMainHostNotAllowed):
+		return ErrResellerSubdomainUnavailable
+	case errors.Is(err, resellercontract.ErrApplyDisabled),
+		errors.Is(err, resellercontract.ErrSubdomainBaseMissing),
+		errors.Is(err, resellercontract.ErrProfileInactive):
+		return ErrResellerActivationInvalid
+	default:
+		return err
 	}
 }

@@ -25,26 +25,29 @@ import (
 )
 
 var (
-	ErrProductSKURequired        = errors.New("product sku required")
-	ErrInvalidOrderAmount        = errors.New("invalid order amount")
-	ErrGuestEmailRequired        = errors.New("guest email required")
-	ErrGuestPasswordRequired     = errors.New("guest password required")
-	ErrGuestPasswordTooShort     = errors.New("guest password too short")
-	ErrInvalidEmail              = errors.New("invalid email")
-	ErrProductPurchaseNotAllowed = errors.New("product purchase not allowed")
-	ErrGuestCouponNotAllowed     = errors.New("guest coupon not allowed")
-	ErrManualStockInsufficient   = errors.New("manual stock insufficient")
-	ErrOrderCurrencyMismatch     = errors.New("order currency mismatch")
-	ErrProductNotAvailable       = errors.New("product not available")
-	ErrResellerCouponNotAllowed  = errors.New("reseller coupon not allowed")
-	ErrQueueUnavailable          = errors.New("queue unavailable")
-	ErrRiskIPBlacklisted         = errors.New("risk: ip blacklisted")
-	ErrRiskClientIPUnavailable   = errors.New("risk: client ip unavailable")
-	ErrRiskTooManyPendingOrders  = errors.New("risk: too many pending orders")
-	ErrRiskProductQuantityLimit  = errors.New("risk: product quantity limit")
-	ErrRiskPendingProductLimit   = errors.New("risk: pending product quantity limit")
-	ErrRiskOrderRateLimited      = errors.New("risk: order rate limited")
-	ErrDirectChargeOrderInvalid  = errors.New("direct charge order invalid")
+	ErrProductSKURequired           = errors.New("product sku required")
+	ErrInvalidOrderAmount           = errors.New("invalid order amount")
+	ErrGuestEmailRequired           = errors.New("guest email required")
+	ErrGuestPasswordRequired        = errors.New("guest password required")
+	ErrGuestPasswordTooShort        = errors.New("guest password too short")
+	ErrInvalidEmail                 = errors.New("invalid email")
+	ErrProductPurchaseNotAllowed    = errors.New("product purchase not allowed")
+	ErrGuestCouponNotAllowed        = errors.New("guest coupon not allowed")
+	ErrManualStockInsufficient      = errors.New("manual stock insufficient")
+	ErrOrderCurrencyMismatch        = errors.New("order currency mismatch")
+	ErrProductNotAvailable          = errors.New("product not available")
+	ErrResellerCouponNotAllowed     = errors.New("reseller coupon not allowed")
+	ErrQueueUnavailable             = errors.New("queue unavailable")
+	ErrRiskIPBlacklisted            = errors.New("risk: ip blacklisted")
+	ErrRiskClientIPUnavailable      = errors.New("risk: client ip unavailable")
+	ErrRiskTooManyPendingOrders     = errors.New("risk: too many pending orders")
+	ErrRiskProductQuantityLimit     = errors.New("risk: product quantity limit")
+	ErrRiskPendingProductLimit      = errors.New("risk: pending product quantity limit")
+	ErrRiskOrderRateLimited         = errors.New("risk: order rate limited")
+	ErrDirectChargeOrderInvalid     = errors.New("direct charge order invalid")
+	ErrResellerActivationInvalid    = errors.New("reseller activation order invalid")
+	ErrResellerActivationExists     = errors.New("reseller activation already reseller")
+	ErrResellerSubdomainUnavailable = errors.New("reseller activation subdomain unavailable")
 )
 
 type riskRateLimitedError struct {
@@ -342,6 +345,9 @@ var userOrderCommonErrorRules = []mappedError{
 	{target: productdomain.ErrMinPurchaseNotMet, code: response.CodeBadRequest, key: "error.product_min_purchase_not_met"},
 	{target: ErrManualStockInsufficient, code: response.CodeBadRequest, key: "error.manual_stock_insufficient"},
 	{target: ErrDirectChargeOrderInvalid, code: response.CodeBadRequest, key: "error.direct_charge_order_invalid"},
+	{target: ErrResellerActivationInvalid, code: response.CodeBadRequest, key: "error.reseller_activation_invalid"},
+	{target: ErrResellerActivationExists, code: response.CodeBadRequest, key: "error.reseller_activation_exists"},
+	{target: ErrResellerSubdomainUnavailable, code: response.CodeBadRequest, key: "error.reseller_subdomain_unavailable"},
 	{target: cardsecretapp.ErrInsufficient, code: response.CodeBadRequest, key: "error.card_secret_insufficient"},
 	{target: ErrOrderCurrencyMismatch, code: response.CodeBadRequest, key: "error.order_currency_mismatch"},
 	{target: productcontract.ErrProductPriceInvalid, code: response.CodeBadRequest, key: "error.product_price_invalid"},
@@ -392,6 +398,9 @@ var guestOrderCommonErrorRules = []mappedError{
 	{target: ErrInvalidOrderAmount, code: response.CodeBadRequest, key: "error.order_amount_invalid"},
 	{target: ErrManualStockInsufficient, code: response.CodeBadRequest, key: "error.manual_stock_insufficient"},
 	{target: ErrDirectChargeOrderInvalid, code: response.CodeBadRequest, key: "error.direct_charge_order_invalid"},
+	{target: ErrResellerActivationInvalid, code: response.CodeBadRequest, key: "error.reseller_activation_invalid"},
+	{target: ErrResellerActivationExists, code: response.CodeBadRequest, key: "error.reseller_activation_exists"},
+	{target: ErrResellerSubdomainUnavailable, code: response.CodeBadRequest, key: "error.reseller_subdomain_unavailable"},
 	{target: cardsecretapp.ErrInsufficient, code: response.CodeBadRequest, key: "error.card_secret_insufficient"},
 	{target: ErrOrderCurrencyMismatch, code: response.CodeBadRequest, key: "error.order_currency_mismatch"},
 	{target: productcontract.ErrProductPriceInvalid, code: response.CodeBadRequest, key: "error.product_price_invalid"},

@@ -14,6 +14,16 @@ import (
 // CreateDirectCharge 账号代充确认成功后的系统交付（没有操作管理员）。
 // 订单已有交付记录时视为成功，供后台任务重复调用。
 func (s *Service) CreateDirectCharge(orderID uint, payload string) (*fulfillmentdomain.Fulfillment, error) {
+	return s.createSystemDelivery(orderID, constants.FulfillmentTypeDirectCharge, payload)
+}
+
+// CreateResellerActivation 付费开通代理成功后的系统交付，交付内容为分站地址等开通信息。
+func (s *Service) CreateResellerActivation(orderID uint, payload string) (*fulfillmentdomain.Fulfillment, error) {
+	return s.createSystemDelivery(orderID, constants.FulfillmentTypeResellerActivation, payload)
+}
+
+// createSystemDelivery 无操作管理员的系统交付：订单内所有商品必须是 fulfillmentType，已交付时幂等返回。
+func (s *Service) createSystemDelivery(orderID uint, fulfillmentType string, payload string) (*fulfillmentdomain.Fulfillment, error) {
 	payload = strings.TrimSpace(payload)
 	if orderID == 0 || payload == "" {
 		return nil, ErrFulfillmentInvalid
@@ -29,7 +39,7 @@ func (s *Service) CreateDirectCharge(orderID uint, payload string) (*fulfillment
 		return nil, ErrFulfillmentInvalid
 	}
 	for _, item := range order.Items {
-		if strings.TrimSpace(item.FulfillmentType) != constants.FulfillmentTypeDirectCharge {
+		if strings.TrimSpace(item.FulfillmentType) != fulfillmentType {
 			return nil, ErrFulfillmentInvalid
 		}
 	}
@@ -50,7 +60,7 @@ func (s *Service) CreateDirectCharge(orderID uint, payload string) (*fulfillment
 		}
 		fulfillment := &fulfillmentdomain.Fulfillment{
 			OrderID:     orderID,
-			Type:        constants.FulfillmentTypeDirectCharge,
+			Type:        fulfillmentType,
 			Status:      constants.FulfillmentStatusDelivered,
 			Payload:     payload,
 			DeliveredAt: &now,

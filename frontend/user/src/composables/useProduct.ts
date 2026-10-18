@@ -40,6 +40,7 @@ export function useProductLabels() {
 
   const getFulfillmentTypeLabel = (fulfillmentType: string) => {
     if (fulfillmentType === 'direct_charge') return t('products.fulfillmentType.direct_charge')
+    if (fulfillmentType === 'reseller_activation') return t('products.fulfillmentType.reseller_activation')
     return fulfillmentType === 'auto' ? t('products.fulfillmentType.auto') : t('products.fulfillmentType.manual')
   }
 

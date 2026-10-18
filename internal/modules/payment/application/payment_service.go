@@ -66,6 +66,7 @@ type PaymentService struct {
 	memberLevelSvc          MemberLevelProgressor
 	paymentProviderRegistry paymentcontract.GatewayRegistry
 	resellerAccounting      resellerAccountingTransactions
+	resellerActivation      ResellerActivationFulfiller
 }
 
 type MemberLevelProgressor interface {
@@ -80,6 +81,11 @@ type ProcurementCreator interface {
 // DownstreamCallbackEnqueuer 是支付与交付上下文触发下游回调所需的最小端口。
 type DownstreamCallbackEnqueuer interface {
 	EnqueueCallback(orderID uint)
+}
+
+// ResellerActivationFulfiller 付费开通代理订单支付成功后开通代理并交付的端口。
+type ResellerActivationFulfiller interface {
+	FulfillResellerActivation(orderID, userID uint, subdomain string) error
 }
 
 // AffiliatePaymentLifecycle 是支付成功回调所需的推广返利用例端口。
@@ -99,6 +105,11 @@ func (s *PaymentService) SetProcurementService(svc ProcurementCreator) {
 // SetDownstreamCallbackService 设置下游回调服务（解决循环依赖）
 func (s *PaymentService) SetDownstreamCallbackService(svc DownstreamCallbackEnqueuer) {
 	s.downstreamCallbackSvc = svc
+}
+
+// SetResellerActivationFulfiller 设置付费开通代理的交付端口（解决循环依赖）
+func (s *PaymentService) SetResellerActivationFulfiller(fulfiller ResellerActivationFulfiller) {
+	s.resellerActivation = fulfiller
 }
 
 // SetMemberLevelService 设置会员等级服务

@@ -168,8 +168,8 @@ func (s *ManagementService) AssignSystemSubdomain(ctx context.Context, adminID, 
 	if err != nil {
 		return nil, err
 	}
-	cacheDomains := make([]string, 0, 3)
 	var updatedID uint
+	var cacheDomains []string
 	err = s.store.WithinManagementTransaction(func(repoTx resellercontract.ManagementStore) error {
 		profile, err := repoTx.GetProfileByID(profileID)
 		if err != nil {
@@ -178,77 +178,214 @@ func (s *ManagementService) AssignSystemSubdomain(ctx context.Context, adminID, 
 		if profile == nil {
 			return productcontract.ErrNotFound
 		}
-		existingHost, err := repoTx.FindDomainByHost(nextDomain)
+		updatedID, cacheDomains, err = assignSystemSubdomainInTx(repoTx, profile, nextDomain)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, domain := range cacheDomains {
+		if domain != "" {
+			_ = cache.DelResellerDomain(ctx, domain)
+		}
+	}
+	return s.store.GetDomainByID(updatedID)
+}
+
+// assignSystemSubdomainInTx 在管理事务内为分销商设置系统二级域名（已有则改名），返回域名 ID 与需要清理缓存的域名。
+func assignSystemSubdomainInTx(repoTx resellercontract.ManagementStore, profile *resellerdomain.Profile, nextDomain string) (uint, []string, error) {
+	cacheDomains := make([]string, 0, 3)
+	existingHost, err := repoTx.FindDomainByHost(nextDomain)
+	if err != nil {
+		return 0, nil, err
+	}
+	domains, err := repoTx.ListDomainsByResellerID(profile.ID)
+	if err != nil {
+		return 0, nil, err
+	}
+	var systemDomain *resellerdomain.Domain
+	hasPrimary := false
+	for i := range domains {
+		domain := domains[i]
+		if domain.IsPrimary {
+			hasPrimary = true
+		}
+		if domain.Type == resellerdomain.DomainTypeSubdomain && systemDomain == nil {
+			copyDomain := domain
+			systemDomain = &copyDomain
+		}
+	}
+	if existingHost != nil && existingHost.ResellerID != profile.ID {
+		return 0, nil, resellercontract.ErrDomainConflict
+	}
+	if existingHost != nil && systemDomain != nil && existingHost.ID != systemDomain.ID {
+		return 0, nil, resellercontract.ErrDomainConflict
+	}
+	now := time.Now()
+	shouldBePrimary := !hasPrimary || (systemDomain != nil && systemDomain.IsPrimary)
+	if systemDomain == nil {
+		row, err := repoTx.UpsertDomain(resellerdomain.Domain{
+			ResellerID:         profile.ID,
+			Domain:             nextDomain,
+			Type:               resellerdomain.DomainTypeSubdomain,
+			VerificationStatus: resellerdomain.DomainVerificationVerified,
+			Status:             resellerdomain.DomainStatusActive,
+			IsPrimary:          shouldBePrimary,
+			VerifiedAt:         &now,
+		})
 		if err != nil {
-			return err
-		}
-		domains, err := repoTx.ListDomainsByResellerID(profile.ID)
-		if err != nil {
-			return err
-		}
-		var systemDomain *resellerdomain.Domain
-		hasPrimary := false
-		for i := range domains {
-			domain := domains[i]
-			if domain.IsPrimary {
-				hasPrimary = true
-			}
-			if domain.Type == resellerdomain.DomainTypeSubdomain && systemDomain == nil {
-				copyDomain := domain
-				systemDomain = &copyDomain
-			}
-		}
-		if existingHost != nil && existingHost.ResellerID != profile.ID {
-			return resellercontract.ErrDomainConflict
-		}
-		if existingHost != nil && systemDomain != nil && existingHost.ID != systemDomain.ID {
-			return resellercontract.ErrDomainConflict
-		}
-		now := time.Now()
-		shouldBePrimary := !hasPrimary || (systemDomain != nil && systemDomain.IsPrimary)
-		if systemDomain == nil {
-			row, err := repoTx.UpsertDomain(resellerdomain.Domain{
-				ResellerID:         profile.ID,
-				Domain:             nextDomain,
-				Type:               resellerdomain.DomainTypeSubdomain,
-				VerificationStatus: resellerdomain.DomainVerificationVerified,
-				Status:             resellerdomain.DomainStatusActive,
-				IsPrimary:          shouldBePrimary,
-				VerifiedAt:         &now,
-			})
-			if err != nil {
-				if strings.Contains(strings.ToLower(err.Error()), "already exists") ||
-					strings.Contains(strings.ToLower(err.Error()), "unique") ||
-					strings.Contains(strings.ToLower(err.Error()), "duplicate") {
-					return resellercontract.ErrDomainConflict
-				}
-				return err
-			}
-			updatedID = row.ID
-			cacheDomains = append(cacheDomains, row.Domain)
-			return nil
-		}
-		if systemDomain.Domain != "" {
-			cacheDomains = append(cacheDomains, systemDomain.Domain)
-		}
-		systemDomain.Domain = nextDomain
-		systemDomain.Type = resellerdomain.DomainTypeSubdomain
-		systemDomain.VerificationToken = ""
-		systemDomain.VerificationStatus = resellerdomain.DomainVerificationVerified
-		systemDomain.Status = resellerdomain.DomainStatusActive
-		systemDomain.IsPrimary = shouldBePrimary
-		systemDomain.VerifiedAt = &now
-		if err := repoTx.UpdateDomain(systemDomain); err != nil {
 			if strings.Contains(strings.ToLower(err.Error()), "already exists") ||
 				strings.Contains(strings.ToLower(err.Error()), "unique") ||
 				strings.Contains(strings.ToLower(err.Error()), "duplicate") {
-				return resellercontract.ErrDomainConflict
+				return 0, nil, resellercontract.ErrDomainConflict
 			}
+			return 0, nil, err
+		}
+		return row.ID, append(cacheDomains, row.Domain), nil
+	}
+	if systemDomain.Domain != "" {
+		cacheDomains = append(cacheDomains, systemDomain.Domain)
+	}
+	systemDomain.Domain = nextDomain
+	systemDomain.Type = resellerdomain.DomainTypeSubdomain
+	systemDomain.VerificationToken = ""
+	systemDomain.VerificationStatus = resellerdomain.DomainVerificationVerified
+	systemDomain.Status = resellerdomain.DomainStatusActive
+	systemDomain.IsPrimary = shouldBePrimary
+	systemDomain.VerifiedAt = &now
+	if err := repoTx.UpdateDomain(systemDomain); err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "already exists") ||
+			strings.Contains(strings.ToLower(err.Error()), "unique") ||
+			strings.Contains(strings.ToLower(err.Error()), "duplicate") {
+			return 0, nil, resellercontract.ErrDomainConflict
+		}
+		return 0, nil, err
+	}
+	return systemDomain.ID, append(cacheDomains, systemDomain.Domain), nil
+}
+
+// paidActivationReservedLabels 付费开通代理时不允许买家占用的二级域名前缀
+var paidActivationReservedLabels = map[string]struct{}{
+	"www": {}, "admin": {}, "api": {}, "app": {}, "mail": {}, "smtp": {}, "imap": {}, "pop": {}, "ftp": {},
+	"shop": {}, "static": {}, "cdn": {}, "img": {}, "assets": {}, "console": {}, "dashboard": {}, "panel": {},
+	"support": {}, "help": {}, "docs": {}, "blog": {}, "status": {}, "test": {}, "dev": {}, "staging": {},
+	"ns1": {}, "ns2": {}, "official": {}, "pay": {}, "payment": {}, "m": {},
+}
+
+// paidActivationMaxMarkupPercent 付费开通的代理默认允许的最高加价比例
+var paidActivationMaxMarkupPercent = decimal.NewFromInt(50)
+
+// normalizePaidActivationSubdomain 校验买家填写的二级域名前缀，返回完整域名
+func (s *ManagementService) normalizePaidActivationSubdomain(raw string) (string, error) {
+	if !s.cfg.Enabled {
+		return "", resellercontract.ErrApplyDisabled
+	}
+	base := resellercontract.NormalizeHost(s.cfg.SubdomainBase)
+	if base == "" {
+		return "", resellercontract.ErrSubdomainBaseMissing
+	}
+	label := strings.ToLower(strings.TrimSpace(raw))
+	if label == "" || strings.Contains(label, ".") {
+		return "", resellercontract.ErrDomainInvalid
+	}
+	if _, reserved := paidActivationReservedLabels[label]; reserved {
+		return "", resellercontract.ErrDomainInvalid
+	}
+	return normalizeAndValidateSystemSubdomain(label, base, s.cfg)
+}
+
+// CheckPaidActivation 下单前校验：用户可以付费开通代理且该二级域名可用
+func (s *ManagementService) CheckPaidActivation(userID uint, subdomain string) error {
+	if s == nil || s.store == nil || userID == 0 {
+		return productcontract.ErrNotFound
+	}
+	domain, err := s.normalizePaidActivationSubdomain(subdomain)
+	if err != nil {
+		return err
+	}
+	profile, err := s.store.GetProfileByUserID(userID)
+	if err != nil {
+		return err
+	}
+	if err := checkPaidActivationProfile(profile); err != nil {
+		return err
+	}
+	existing, err := s.store.FindDomainByHost(domain)
+	if err != nil {
+		return err
+	}
+	if existing != nil && (profile == nil || existing.ResellerID != profile.ID) {
+		return resellercontract.ErrDomainConflict
+	}
+	return nil
+}
+
+func checkPaidActivationProfile(profile *resellerdomain.Profile) error {
+	if profile == nil {
+		return nil
+	}
+	switch profile.Status {
+	case resellerdomain.ProfileStatusPendingReview, resellerdomain.ProfileStatusRejected:
+		return nil
+	case resellerdomain.ProfileStatusActive:
+		return resellercontract.ErrAlreadyReseller
+	case resellerdomain.ProfileStatusDisabled:
+		return resellercontract.ErrProfileInactive
+	default:
+		return resellercontract.ErrProfileStatusInvalid
+	}
+}
+
+// ActivatePaidReseller 付款后开通代理：创建或激活分销商档案并分配系统二级域名，整个过程在一个事务内完成。
+// 同一用户已是代理且已拥有该域名时直接返回，保证重复投递幂等。
+func (s *ManagementService) ActivatePaidReseller(ctx context.Context, userID uint, subdomain string) (*resellerdomain.Domain, error) {
+	if s == nil || s.store == nil || userID == 0 {
+		return nil, productcontract.ErrNotFound
+	}
+	nextDomain, err := s.normalizePaidActivationSubdomain(subdomain)
+	if err != nil {
+		return nil, err
+	}
+	var updatedID uint
+	var cacheDomains []string
+	err = s.store.WithinManagementTransaction(func(repoTx resellercontract.ManagementStore) error {
+		profile, err := repoTx.GetProfileByUserID(userID)
+		if err != nil {
 			return err
 		}
-		updatedID = systemDomain.ID
-		cacheDomains = append(cacheDomains, systemDomain.Domain)
-		return nil
+		if profile != nil && profile.Status == resellerdomain.ProfileStatusActive {
+			existing, err := repoTx.FindDomainByHost(nextDomain)
+			if err != nil {
+				return err
+			}
+			if existing != nil && existing.ResellerID == profile.ID {
+				updatedID = existing.ID
+				return nil
+			}
+			return resellercontract.ErrAlreadyReseller
+		}
+		if err := checkPaidActivationProfile(profile); err != nil {
+			return err
+		}
+		if profile == nil {
+			profile = &resellerdomain.Profile{UserID: userID}
+		}
+		profile.Status = resellerdomain.ProfileStatusActive
+		profile.RejectReason = ""
+		profile.DefaultMarkupPercent = money.FromDecimal(decimal.Zero)
+		profile.MaxMarkupPercent = money.FromDecimal(paidActivationMaxMarkupPercent)
+		profile.SettlementStatus = resellerdomain.SettlementStatusNormal
+		now := time.Now()
+		profile.ReviewedAt = &now
+		if profile.ID == 0 {
+			if err := repoTx.CreateProfile(profile); err != nil {
+				return err
+			}
+		} else if err := repoTx.UpdateProfile(profile); err != nil {
+			return err
+		}
+		updatedID, cacheDomains, err = assignSystemSubdomainInTx(repoTx, profile, nextDomain)
+		return err
 	})
 	if err != nil {
 		return nil, err

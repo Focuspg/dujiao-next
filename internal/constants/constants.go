@@ -27,8 +27,12 @@ const (
 	FulfillmentTypeUpstream = "upstream"
 	// FulfillmentTypeDirectCharge 账号代充：只能经代充下单流程（预检后）购买，支付后由代充任务自动履约
 	FulfillmentTypeDirectCharge = "direct_charge"
-	FulfillmentStatusPending    = "pending"
-	FulfillmentStatusDelivered  = "delivered"
+	// FulfillmentTypeResellerActivation 付费开通代理：买家下单时填写二级域名前缀，支付后自动开通分销商并分配该域名
+	FulfillmentTypeResellerActivation = "reseller_activation"
+	// ResellerActivationSubdomainField 开通代理下单表单中二级域名前缀的字段 key
+	ResellerActivationSubdomainField = "subdomain"
+	FulfillmentStatusPending         = "pending"
+	FulfillmentStatusDelivered       = "delivered"
 )
 
 // 支付状态常量

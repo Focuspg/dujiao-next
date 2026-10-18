@@ -39,7 +39,11 @@ var (
 	ErrResellerProductNotListed   = productcontract.ErrResellerProductNotListed
 	ErrResellerCouponNotAllowed   = errors.New("reseller coupon not allowed")
 	ErrDirectChargeOrderInvalid   = errors.New("direct charge order invalid")
-	ErrResellerPriceBelowBase     = resellercontract.ErrPriceBelowBase
-	ErrResellerMarkupExceeded     = resellercontract.ErrMarkupExceeded
-	ErrResellerPricingModeInvalid = resellercontract.ErrPricingModeInvalid
+	// 付费开通代理：需登录、单独购买且数量为 1；已是代理的账号不能再买
+	ErrResellerActivationInvalid    = errors.New("reseller activation order invalid")
+	ErrResellerActivationExists     = errors.New("reseller activation already reseller")
+	ErrResellerSubdomainUnavailable = errors.New("reseller activation subdomain unavailable")
+	ErrResellerPriceBelowBase       = resellercontract.ErrPriceBelowBase
+	ErrResellerMarkupExceeded       = resellercontract.ErrMarkupExceeded
+	ErrResellerPricingModeInvalid   = resellercontract.ErrPricingModeInvalid
 )

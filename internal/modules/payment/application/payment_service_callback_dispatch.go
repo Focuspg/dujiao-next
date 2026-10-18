@@ -2,6 +2,7 @@ package application
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	paymentdomain "github.com/dujiao-next/internal/modules/payment/domain"
@@ -64,6 +65,9 @@ func (s *PaymentService) enqueueOrderPaidAsync(order *orderdomain.Order, payment
 		}
 	}
 
+	// 开通代理订单不依赖任务队列，支付提交后立即开通并交付
+	s.fulfillResellerActivations(order, log)
+
 	if s.queue == nil || !s.queue.Enabled() {
 		return
 	}
@@ -105,6 +109,61 @@ func (s *PaymentService) enqueueOrderPaidAsync(order *orderdomain.Order, payment
 	s.enqueueProcurementAsync(order, log)
 	// B 侧：订单支付成功后检查是否需要回调下游
 	s.enqueueDownstreamCallbackAsync(order, log)
+}
+
+// fulfillResellerActivations 为开通代理的（子）订单开通代理、分配二级域名并交付；失败时转人工处理并通知管理员
+func (s *PaymentService) fulfillResellerActivations(order *orderdomain.Order, log *zap.SugaredLogger) {
+	if order == nil {
+		return
+	}
+	if len(order.Children) == 0 {
+		s.fulfillResellerActivation(order, nil, log)
+		return
+	}
+	for i := range order.Children {
+		s.fulfillResellerActivation(&order.Children[i], order, log)
+	}
+}
+
+func (s *PaymentService) fulfillResellerActivation(order *orderdomain.Order, parent *orderdomain.Order, log *zap.SugaredLogger) {
+	if !isResellerActivationOrder(order) {
+		return
+	}
+	userID := order.UserID
+	if userID == 0 && parent != nil {
+		userID = parent.UserID
+	}
+	subdomain := ""
+	if raw, ok := order.Items[0].ManualFormSubmissionJSON[constants.ResellerActivationSubdomainField]; ok {
+		subdomain = strings.TrimSpace(fmt.Sprint(raw))
+	}
+	err := errors.New("reseller activation fulfiller not configured")
+	if s.resellerActivation != nil {
+		err = s.resellerActivation.FulfillResellerActivation(order.ID, userID, subdomain)
+	}
+	if err == nil {
+		return
+	}
+	log.Warnw("payment_reseller_activation_failed",
+		"order_id", order.ID,
+		"order_no", order.OrderNo,
+		"user_id", userID,
+		"subdomain", subdomain,
+		"error", err,
+	)
+	s.enqueueManualFulfillmentPendingAsync(order, parent, log)
+}
+
+func isResellerActivationOrder(order *orderdomain.Order) bool {
+	if order == nil || len(order.Items) == 0 {
+		return false
+	}
+	for _, item := range order.Items {
+		if strings.TrimSpace(item.FulfillmentType) != constants.FulfillmentTypeResellerActivation {
+			return false
+		}
+	}
+	return true
 }
 
 // enqueueProcurementAsync 如果订单包含上游交付类型商品，创建采购单
@@ -242,6 +301,10 @@ func hasManualFulfillmentItems(order *orderdomain.Order) bool {
 		return false
 	}
 	for _, item := range order.Items {
+		// 开通代理订单自动交付，只有开通失败时才单独发人工待处理通知
+		if strings.TrimSpace(item.FulfillmentType) == constants.FulfillmentTypeResellerActivation {
+			continue
+		}
 		if notificationformat.NormalizeFulfillmentType(item.FulfillmentType) == constants.FulfillmentTypeManual {
 			return true
 		}

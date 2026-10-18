@@ -172,7 +172,8 @@
     "fulfillmentType": {
       "manual": "Manual delivery",
       "auto": "Auto fulfillment",
-      "direct_charge": "Account top-up"
+      "direct_charge": "Account top-up",
+      "reseller_activation": "Reseller activation"
     },
     "filter": "Filter",
     "closeFilter": "Close filter",
@@ -1416,6 +1417,9 @@
       "domainCount": "Domains",
       "unavailableTitle": "Application is not required",
       "unavailableDescription": "If access is active, use the other reseller modules directly.",
+      "purchaseTitle": "Buy reseller access",
+      "purchaseDescription": "Become a reseller by buying the \"Reseller activation\" product. Enter your storefront subdomain at checkout and access is activated right after payment.",
+      "purchaseAction": "Go to products",
       "stepSubmit": "Submit",
       "stepReview": "Review",
       "stepActive": "Active",

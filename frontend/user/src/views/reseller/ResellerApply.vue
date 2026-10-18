@@ -71,6 +71,17 @@
             </div>
           </form>
 
+          <div v-else-if="state.profileStatus !== 'active' && state.profileStatus !== 'disabled'" class="flex h-full flex-col items-center justify-center py-6 text-center">
+            <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+              <ShoppingCart class="h-6 w-6" />
+            </span>
+            <h3 class="mt-3 text-base font-bold text-foreground">{{ t('resellerConsole.apply.purchaseTitle') }}</h3>
+            <p class="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{{ t('resellerConsole.apply.purchaseDescription') }}</p>
+            <Button as-child class="mt-5">
+              <RouterLink to="/products">{{ t('resellerConsole.apply.purchaseAction') }}</RouterLink>
+            </Button>
+          </div>
+
           <div v-else class="flex h-full flex-col items-center justify-center py-6 text-center">
             <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
               <BadgeCheck class="h-6 w-6" />
@@ -90,7 +101,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BadgeCheck, Check, CheckCircle2, X } from 'lucide-vue-next'
+import { BadgeCheck, Check, CheckCircle2, ShoppingCart, X } from 'lucide-vue-next'
 import { resellerAPI } from '../../api'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'

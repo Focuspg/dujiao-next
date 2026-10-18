@@ -32,8 +32,8 @@ func (h *PublicHandler) decorateProductStock(product *productdomain.Product, ite
 		fulfillmentType = constants.FulfillmentTypeManual
 	}
 
-	// 账号代充：不占用本地库存，可售由充值规格与上游实时预检控制
-	if fulfillmentType == constants.FulfillmentTypeDirectCharge {
+	// 账号代充：不占用本地库存，可售由充值规格与上游实时预检控制；开通代理不限量
+	if fulfillmentType == constants.FulfillmentTypeDirectCharge || fulfillmentType == constants.FulfillmentTypeResellerActivation {
 		item.ManualStockAvailable = constants.ManualStockUnlimited
 		item.StockStatus = constants.ProductStockStatusUnlimited
 		return

@@ -48,6 +48,8 @@ func NormalizeFulfillmentType(raw string) string {
 		return constants.FulfillmentTypeUpstream
 	case constants.FulfillmentTypeDirectCharge:
 		return constants.FulfillmentTypeDirectCharge
+	case constants.FulfillmentTypeResellerActivation:
+		return constants.FulfillmentTypeResellerActivation
 	default:
 		return ""
 	}

@@ -31,6 +31,8 @@ var (
 	ErrMarkupExceeded = errors.New("reseller markup exceeded")
 	// ErrPricingModeInvalid 表示定价模式不合法。
 	ErrPricingModeInvalid = errors.New("reseller pricing mode invalid")
+	// ErrAlreadyReseller 表示账号已经是分销商，不能重复付费开通。
+	ErrAlreadyReseller = errors.New("reseller already opened")
 	// ErrAgentPriceInvalid 表示代理价不合法（须大于 0 且不高于零售价）。
 	ErrAgentPriceInvalid = errors.New("reseller agent price invalid")
 	// ErrSettlementUnavailable 表示结算状态不可用。
