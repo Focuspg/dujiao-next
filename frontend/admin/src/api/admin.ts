@@ -17,6 +17,7 @@ import type {
   AdminResellerProfileApprovePayload,
   AdminResellerProfileUpdatePayload,
   AdminResellerProductSettingUpdatePayload,
+  AdminResellerAgentPriceUpdatePayload,
   AdminResellerReasonPayload,
   AdminResellerSiteConfigPayload,
   AdminResellerSystemDomainPayload,
@@ -527,6 +528,10 @@ export const adminAPI = {
   ) => api.post(`/admin/resellers/product-settings/${resellerId}/${productId}/preview`, data),
   resetResellerProductSetting: (resellerId: number, productId: number, skuId = 0) =>
     api.delete(`/admin/resellers/product-settings/${resellerId}/${productId}`, { params: { sku_id: skuId } }),
+  getResellerAgentPrices: (resellerId: number, params?: Record<string, unknown>) =>
+    api.get(`/admin/resellers/profiles/${resellerId}/agent-prices`, { params }),
+  updateResellerAgentPrices: (resellerId: number, data: AdminResellerAgentPriceUpdatePayload) =>
+    api.put(`/admin/resellers/profiles/${resellerId}/agent-prices`, data),
   refundOrderToWallet: (id: number, data: AdminRefundToWalletPayload) =>
     api.post(`/admin/orders/${id}/refund-to-wallet`, data),
   manualRefundOrder: (id: number, data: AdminManualRefundPayload) =>

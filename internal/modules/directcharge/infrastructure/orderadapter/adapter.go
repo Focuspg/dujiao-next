@@ -63,6 +63,7 @@ func (a *Adapter) CreateDirectChargeOrder(request directchargecontract.OrderRequ
 			FulfillmentType: constants.FulfillmentTypeDirectCharge,
 		}},
 		ClientIP:     request.ClientIP,
+		Tenant:       request.Tenant,
 		DirectCharge: true,
 	})
 	if err != nil {

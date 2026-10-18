@@ -113,6 +113,7 @@
                 :model-value="skuFormFor(sku.id)"
                 :label="buildSkuLabel(sku)"
                 :base-price="sku.base_price_amount"
+                :agent-price="sku.agent_price_amount"
                 :effective-price="previewEffectiveFor(sku.id, summarizeSkuEffectivePrice(sku))"
                 :invalid="previewInvalidFor(sku.id)"
                 :error-code="previewErrorFor(sku.id)"

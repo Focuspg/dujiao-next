@@ -32,6 +32,7 @@ func Migrate(db *gorm.DB) error {
 		&resellerdomain.WithdrawRequest{},
 		&resellerdomain.BalanceAccount{},
 		&resellerdomain.RelatedAccount{},
+		&resellerdomain.AgentPrice{},
 	); err != nil {
 		return err
 	}

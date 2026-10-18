@@ -11,6 +11,7 @@ import (
 
 	directchargeapp "github.com/dujiao-next/internal/modules/directcharge/application"
 	directchargecontract "github.com/dujiao-next/internal/modules/directcharge/contract"
+	resellercontract "github.com/dujiao-next/internal/modules/reseller/contract"
 	"github.com/dujiao-next/internal/platform/http/ginutil"
 	"github.com/dujiao-next/internal/platform/http/response"
 
@@ -107,6 +108,7 @@ func (h *UserHandler) CreateOrder(c *gin.Context) {
 		UserID:       uid,
 		PreflightRef: strings.TrimSpace(req.PreflightRef),
 		ClientIP:     c.ClientIP(),
+		Tenant:       resellercontract.TenantOrMain(c.Request.Context()),
 	})
 	if err != nil {
 		respondError(c, err)

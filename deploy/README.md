@@ -45,11 +45,17 @@ cd /opt/focusai-shop/repo && git checkout <提交号>
 
 ZovoCard 回调地址填 `https://<域名>/api/v1/webhooks/zovocard`。SMTP 邮件、易支付商户在后台“系统设置 / 支付渠道”里配置。
 
+## 分销分站（代理二级域名）
+
+1. 在 DNS 里加一条通配符记录 `*.<域名>` 指向服务器 IP。用 Cloudflare 时这条记录设为“仅 DNS”（灰云），证书由本机 Caddy 签发。
+2. `config.yml` 的 `reseller` 段：`enabled: true`、`main_hosts` 写主站域名、`subdomain_base` 写主站域名（新安装已按模板生成；老安装需手动改后 `compose restart shop`）。
+3. 后台审核分销商后在其详情页分配二级域名（如 `abc.<域名>`），并在“商品”页签设置代理价。分站第一次被访问时 Caddy 自动申请证书，只会为后台已启用的分销域名签发。
+
 ## 升级与回滚
 
 ```bash
 cd /opt/focusai-shop/repo && git pull
-./deploy/focusai.sh upgrade sha-<新提交号>   # 先拉镜像、再备份、再切换，最后经 Caddy 冒烟测试
+./deploy/focusai.sh upgrade sha-<新提交号>   # 先拉镜像、再备份、再切换，最后经 Caddy 冒烟测试；Caddyfile 有改动时先校验再重建 Caddy
 /opt/focusai-shop/focusai.sh rollback          # 换回上一个镜像
 ```
 

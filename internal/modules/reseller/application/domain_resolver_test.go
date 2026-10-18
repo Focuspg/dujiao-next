@@ -146,3 +146,29 @@ func TestResellerDomainResolverRepoError(t *testing.T) {
 		t.Fatal("expected repository error")
 	}
 }
+
+func TestResellerDomainResolverAllowsCertificate(t *testing.T) {
+	id := uint(7)
+	active := &resellerdomain.Domain{
+		ID:         11,
+		ResellerID: id,
+		Domain:     "shop.example.test",
+		Profile:    &resellerdomain.Profile{ID: id, UserID: 88, Status: resellerdomain.ProfileStatusActive},
+	}
+	cfg := config.ResellerConfig{Enabled: true, MainHosts: []string{"main.example.test"}}
+
+	allowed, err := NewDomainResolver(&resellerResolverRepoStub{domain: active}, cfg).AllowsCertificate(context.Background(), "SHOP.example.test")
+	if err != nil || !allowed {
+		t.Fatalf("active reseller domain should be allowed, allowed=%v err=%v", allowed, err)
+	}
+	for _, host := range []string{"", "main.example.test", "unknown.example.test"} {
+		allowed, err := NewDomainResolver(&resellerResolverRepoStub{}, cfg).AllowsCertificate(context.Background(), host)
+		if err != nil || allowed {
+			t.Fatalf("host %q should not be allowed, allowed=%v err=%v", host, allowed, err)
+		}
+	}
+	allowed, err = NewDomainResolver(&resellerResolverRepoStub{domain: active}, config.ResellerConfig{Enabled: false}).AllowsCertificate(context.Background(), "shop.example.test")
+	if err != nil || allowed {
+		t.Fatalf("disabled reseller mode must not allow certificates, allowed=%v err=%v", allowed, err)
+	}
+}

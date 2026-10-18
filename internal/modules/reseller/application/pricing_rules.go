@@ -96,3 +96,26 @@ func ValidateUnitAmount(profile *resellerdomain.Profile, sku *productdomain.Prod
 	}
 	return nil
 }
+
+// IndexAgentPrices 按 SKU ID 索引分销商拿货价。
+func IndexAgentPrices(rows []resellerdomain.AgentPrice) map[uint]decimal.Decimal {
+	out := make(map[uint]decimal.Decimal, len(rows))
+	for _, row := range rows {
+		if row.SKUID == 0 {
+			continue
+		}
+		out[row.SKUID] = row.PriceAmount.Decimal.Round(2)
+	}
+	return out
+}
+
+// ResolveCostUnit 返回分销商的拿货单价：设置了大于 0 且不高于零售价的代理价时取代理价，否则按零售价。
+// 零售价后来被调到代理价以下时按零售价计，保证利润不为负。
+func ResolveCostUnit(baseUnit decimal.Decimal, agentPrices map[uint]decimal.Decimal, skuID uint) decimal.Decimal {
+	baseUnit = baseUnit.Round(2)
+	agent, ok := agentPrices[skuID]
+	if !ok || skuID == 0 || agent.LessThanOrEqual(decimal.Zero) || agent.GreaterThan(baseUnit) {
+		return baseUnit
+	}
+	return agent.Round(2)
+}

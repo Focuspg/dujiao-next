@@ -1,12 +1,15 @@
 package integrationtest
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
 	resellergormstore "github.com/dujiao-next/internal/modules/reseller/infrastructure/gormstore"
 
+	resellermodule "github.com/dujiao-next/internal/modules/reseller/application"
+	resellercontract "github.com/dujiao-next/internal/modules/reseller/contract"
 	resellerdomain "github.com/dujiao-next/internal/modules/reseller/domain"
 
 	productdomain "github.com/dujiao-next/internal/modules/catalog/product/domain"
@@ -39,6 +42,7 @@ func openResellerProductSettingServiceTestDB(t *testing.T) *gorm.DB {
 		&productdomain.ProductSKU{},
 		&resellerdomain.Profile{},
 		&resellerdomain.ProductSetting{},
+		&resellerdomain.AgentPrice{},
 	); err != nil {
 		t.Fatalf("migrate failed: %v", err)
 	}
@@ -283,5 +287,57 @@ func TestResellerProductSettingServiceRequiresActiveProfile(t *testing.T) {
 	_, _, err := svc.ListUserProductSettings(user.ID, ResellerProductSettingUserListInput{Page: 1, PageSize: 20})
 	if err != ErrResellerProfileInactive {
 		t.Fatalf("expected inactive profile, got %v product=%d", err, product.ID)
+	}
+}
+
+func TestResellerProductSettingServiceAdminAgentPrices(t *testing.T) {
+	db := openResellerProductSettingServiceTestDB(t)
+	user, profile, product, skus := seedResellerProductSettingServiceData(t, db)
+	svc := newResellerProductSettingServiceForTest(db)
+
+	price := decimal.RequireFromString("85.50")
+	if err := svc.SaveAdminAgentPrices(profile.ID, []resellermodule.AgentPriceInput{
+		{ProductID: product.ID, SKUID: skus[0].ID, PriceAmount: &price},
+	}); err != nil {
+		t.Fatalf("save agent price failed: %v", err)
+	}
+	tooHigh := decimal.RequireFromString("200.01")
+	if err := svc.SaveAdminAgentPrices(profile.ID, []resellermodule.AgentPriceInput{
+		{ProductID: product.ID, SKUID: skus[1].ID, PriceAmount: &tooHigh},
+	}); !errors.Is(err, resellercontract.ErrAgentPriceInvalid) {
+		t.Fatalf("agent price above retail want ErrAgentPriceInvalid got %v", err)
+	}
+
+	list, err := svc.ListAdminAgentPrices(profile.ID, resellermodule.AgentPriceListInput{Page: 1, PageSize: 20})
+	if err != nil {
+		t.Fatalf("list agent prices failed: %v", err)
+	}
+	if list.Total != 1 || list.AgentPrices[skus[0].ID].StringFixed(2) != "85.50" {
+		t.Fatalf("unexpected agent price list: total=%d prices=%v", list.Total, list.AgentPrices)
+	}
+	if _, ok := list.AgentPrices[skus[1].ID]; ok {
+		t.Fatalf("rejected agent price must not be saved")
+	}
+
+	// 分销商在控制台看到自己的拿货价：设置了代理价的 SKU 显示代理价，其余按零售价
+	detail, err := svc.GetUserProductSetting(user.ID, product.ID)
+	if err != nil {
+		t.Fatalf("get user product setting failed: %v", err)
+	}
+	if got := detail.AgentPriceBySKUID[skus[0].ID].StringFixed(2); got != "85.50" {
+		t.Fatalf("sku A agent price want 85.50 got %s", got)
+	}
+	if got := detail.AgentPriceBySKUID[skus[1].ID].StringFixed(2); got != "200.00" {
+		t.Fatalf("sku B agent price want retail 200.00 got %s", got)
+	}
+
+	if err := svc.SaveAdminAgentPrices(profile.ID, []resellermodule.AgentPriceInput{
+		{ProductID: product.ID, SKUID: skus[0].ID},
+	}); err != nil {
+		t.Fatalf("clear agent price failed: %v", err)
+	}
+	var count int64
+	if err := db.Model(&resellerdomain.AgentPrice{}).Count(&count).Error; err != nil || count != 0 {
+		t.Fatalf("agent price should be cleared, count=%d err=%v", count, err)
 	}
 }

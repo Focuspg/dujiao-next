@@ -173,6 +173,7 @@ func SetupRouter(cfg *config.Config, c *container.Container) *gin.Engine {
 	adminResellerProfileDetailHandler := resellerHandlers.AdminProfileDetail
 	adminResellerSiteConfigHandler := resellerHandlers.AdminSiteConfig
 	adminResellerProductSettingHandler := resellerHandlers.AdminProductSetting
+	adminResellerAgentPriceHandler := resellerHandlers.AdminAgentPrice
 	adminResellerOperationsHandler := resellerHandlers.AdminOperations
 	adminResellerFinanceHandler := resellerHandlers.AdminFinance
 
@@ -276,11 +277,24 @@ func SetupRouter(cfg *config.Config, c *container.Container) *gin.Engine {
 	registerUpstreamRoutes(apiV1, c, upstreamHandler, redisClient, upstreamAPIRule, callbackRule)
 	registerChannelRoutes(apiV1, c, channelHandler, channelMemberLevelHandler, channelGiftCardHandler, channelAffiliateHandler, channelTelegramBotHandler, channelWalletHandler, redisClient, channelAPIRule)
 	registerPaymentCallbackRoutes(apiV1, paymentCallbackHandler, paymentWebhookHandler, paymentEpayRedirectHandler, directchargehttp.NewWebhookHandler(c.DirectChargeService), redisClient, callbackRule)
-	registerAdminRoutes(r, apiV1, cfg, c, adminLoginHandler, admin2FAHandler, adminUser2FAHandler, adminUserHandler, adminAuthzHandler, adminFulfillmentHandler, adminOrderHandler, adminOrderRefundHandler, adminContentHandler, adminDashboardHandler, adminMemberLevelHandler, adminApiCredentialHandler, adminAuditLogHandler, adminCardSecretHandler, adminCatalogCategoryHandler, adminCatalogProductHandler, adminCatalogProductMappingHandler, adminCouponHandler, adminGiftCardHandler, adminPromotionHandler, adminNotificationHandler, adminProcurementHandler, adminResellerManagementHandler, adminResellerProfileDetailHandler, adminResellerSiteConfigHandler, adminResellerProductSettingHandler, adminResellerOperationsHandler, adminResellerFinanceHandler, adminSettingsHandler, adminWalletHandler, adminPaymentHandler, adminPaymentChannelHandler, redisClient, adminLoginRule)
+	registerAdminRoutes(r, apiV1, cfg, c, adminLoginHandler, admin2FAHandler, adminUser2FAHandler, adminUserHandler, adminAuthzHandler, adminFulfillmentHandler, adminOrderHandler, adminOrderRefundHandler, adminContentHandler, adminDashboardHandler, adminMemberLevelHandler, adminApiCredentialHandler, adminAuditLogHandler, adminCardSecretHandler, adminCatalogCategoryHandler, adminCatalogProductHandler, adminCatalogProductMappingHandler, adminCouponHandler, adminGiftCardHandler, adminPromotionHandler, adminNotificationHandler, adminProcurementHandler, adminResellerManagementHandler, adminResellerProfileDetailHandler, adminResellerSiteConfigHandler, adminResellerProductSettingHandler, adminResellerAgentPriceHandler, adminResellerOperationsHandler, adminResellerFinanceHandler, adminSettingsHandler, adminWalletHandler, adminPaymentHandler, adminPaymentChannelHandler, redisClient, adminLoginRule)
 
 	// 健康检查
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+	// 反向代理按需签发 HTTPS 证书前的询问接口（Caddy on_demand_tls ask）：只放行已启用的分销站域名
+	r.GET("/health/tls-ask", func(ctx *gin.Context) {
+		allowed, err := c.ResellerDomainResolver.AllowsCertificate(ctx.Request.Context(), ctx.Query("domain"))
+		if err != nil {
+			ctx.Status(http.StatusInternalServerError)
+			return
+		}
+		if !allowed {
+			ctx.Status(http.StatusNotFound)
+			return
+		}
+		ctx.Status(http.StatusOK)
 	})
 
 	// 嵌入式前端资源（仅在 -tags fullstack 构建时生效）

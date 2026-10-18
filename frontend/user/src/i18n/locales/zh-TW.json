@@ -810,6 +810,7 @@
         "searchPlaceholder": "搜尋商品名稱、Slug 或商品 ID",
         "empty": "暫無可配置商品",
         "basePrice": "主站基準價",
+        "agentPrice": "拿貨價",
         "edit": "編輯售價",
         "editorTitle": "售價規則",
         "productLevelRule": "商品級規則",

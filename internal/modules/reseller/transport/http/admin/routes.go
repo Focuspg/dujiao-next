@@ -47,6 +47,14 @@ func RegisterProductSettingRoutes(admin gin.IRoutes, handler *AdminProductSettin
 	admin.DELETE("/resellers/product-settings/:reseller_id/:product_id", handler.ResetProductSetting)
 }
 
+func RegisterAgentPriceRoutes(admin gin.IRoutes, handler *AdminAgentPriceHandler) {
+	if admin == nil || handler == nil {
+		panic("reseller admin agent price routes: required dependency is nil")
+	}
+	admin.GET("/resellers/profiles/:id/agent-prices", handler.ListAgentPrices)
+	admin.PUT("/resellers/profiles/:id/agent-prices", handler.UpdateAgentPrices)
+}
+
 func RegisterOperationsOverviewRoutes(admin gin.IRoutes, handler *AdminOperationsHandler) {
 	if admin == nil || handler == nil {
 		panic("reseller admin operations overview routes: required dependency is nil")

@@ -28,3 +28,17 @@ type ProductSetting struct {
 }
 
 func (ProductSetting) TableName() string { return "reseller_product_settings" }
+
+// AgentPrice 后台给分销商单独设置的 SKU 拿货价（代理价）。
+// 未设置时分销商按零售价拿货；分销利润 = 分站成交价 − 拿货价。
+type AgentPrice struct {
+	ID          uint         `gorm:"primarykey" json:"id"`
+	ResellerID  uint         `gorm:"not null;uniqueIndex:idx_reseller_agent_price_scope,priority:1" json:"reseller_id"`
+	ProductID   uint         `gorm:"not null;index" json:"product_id"`
+	SKUID       uint         `gorm:"column:sku_id;not null;uniqueIndex:idx_reseller_agent_price_scope,priority:2" json:"sku_id"`
+	PriceAmount money.Amount `gorm:"type:decimal(20,2);not null;default:0" json:"price_amount"`
+	CreatedAt   time.Time    `gorm:"index" json:"created_at"`
+	UpdatedAt   time.Time    `gorm:"index" json:"updated_at"`
+}
+
+func (AgentPrice) TableName() string { return "reseller_agent_prices" }

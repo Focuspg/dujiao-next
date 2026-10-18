@@ -14,6 +14,7 @@ import (
 	"github.com/dujiao-next/internal/shared/jsonmap"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shopspring/decimal"
 )
 
 // AdminProductSettingService 是后台分销商品配置端点所需的最小用例接口。
@@ -176,6 +177,111 @@ func collectProductSettingRequestSKUIDs(settings []transportshared.ProductSettin
 }
 
 func (h *AdminProductSettingHandler) recordAudit(c *gin.Context, action, object, method string, detail jsonmap.JSON) {
+	if h == nil || h.audit == nil {
+		return
+	}
+	_ = h.audit.Record(auditlogapp.AuthzRecord{
+		OperatorAdminID:  c.GetUint("admin_id"),
+		OperatorUsername: c.GetString("username"),
+		Action:           action,
+		Object:           object,
+		Method:           method,
+		RequestID:        strings.TrimSpace(c.GetString("request_id")),
+		Detail:           detail,
+	})
+}
+
+// AdminAgentPriceService 是后台分销商代理价端点所需的最小用例接口。
+type AdminAgentPriceService interface {
+	ListAdminAgentPrices(resellerID uint, input resellermodule.AgentPriceListInput) (*resellermodule.AgentPriceList, error)
+	SaveAdminAgentPrices(resellerID uint, items []resellermodule.AgentPriceInput) error
+}
+
+// AdminAgentPriceHandler 处理后台分销商代理价请求。
+type AdminAgentPriceHandler struct {
+	service AdminAgentPriceService
+	audit   AuditRecorder
+}
+
+func NewAdminAgentPriceHandler(service AdminAgentPriceService, audit AuditRecorder) *AdminAgentPriceHandler {
+	if service == nil {
+		panic("reseller admin agent price handler: service is nil")
+	}
+	return &AdminAgentPriceHandler{service: service, audit: audit}
+}
+
+type agentPriceItemRequest struct {
+	ProductID        uint   `json:"product_id" binding:"required"`
+	SKUID            uint   `json:"sku_id" binding:"required"`
+	AgentPriceAmount string `json:"agent_price_amount"`
+}
+
+type agentPriceUpdateRequest struct {
+	Items []agentPriceItemRequest `json:"items" binding:"required,max=500,dive"`
+}
+
+// ListAgentPrices 管理端按商品分页查看某分销商的代理价。
+func (h *AdminAgentPriceHandler) ListAgentPrices(c *gin.Context) {
+	resellerID, err := ginutil.ParseParamUint(c, "id")
+	if err != nil {
+		ginutil.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
+		return
+	}
+	page, pageSize := ginutil.ParsePagination(c)
+	result, err := h.service.ListAdminAgentPrices(resellerID, resellermodule.AgentPriceListInput{
+		Page:     page,
+		PageSize: pageSize,
+		Keyword:  strings.TrimSpace(c.Query("keyword")),
+	})
+	if err != nil {
+		respondAdminProductSettingError(c, err)
+		return
+	}
+	response.SuccessWithPage(c,
+		dto.NewAdminResellerAgentPriceRespList(result.Products, transportshared.DecimalMapToStringMap(result.AgentPrices)),
+		response.BuildPagination(page, pageSize, result.Total),
+	)
+}
+
+// UpdateAgentPrices 管理端批量设置某分销商的代理价；agent_price_amount 留空表示清除。
+func (h *AdminAgentPriceHandler) UpdateAgentPrices(c *gin.Context) {
+	resellerID, err := ginutil.ParseParamUint(c, "id")
+	if err != nil {
+		ginutil.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
+		return
+	}
+	var req agentPriceUpdateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ginutil.RespondBindError(c, err)
+		return
+	}
+	items := make([]resellermodule.AgentPriceInput, 0, len(req.Items))
+	skuIDs := make([]uint, 0, len(req.Items))
+	for _, item := range req.Items {
+		input := resellermodule.AgentPriceInput{ProductID: item.ProductID, SKUID: item.SKUID}
+		if raw := strings.TrimSpace(item.AgentPriceAmount); raw != "" {
+			price, err := decimal.NewFromString(raw)
+			if err != nil {
+				ginutil.RespondError(c, response.CodeBadRequest, "error.reseller_agent_price_invalid", nil)
+				return
+			}
+			input.PriceAmount = &price
+		}
+		items = append(items, input)
+		skuIDs = append(skuIDs, item.SKUID)
+	}
+	if err := h.service.SaveAdminAgentPrices(resellerID, items); err != nil {
+		respondAdminProductSettingError(c, err)
+		return
+	}
+	h.recordAudit(c, "reseller_agent_price_save", "/admin/resellers/profiles/:id/agent-prices", "PUT", jsonmap.JSON{
+		"reseller_id": resellerID,
+		"sku_ids":     skuIDs,
+	})
+	response.Success(c, gin.H{"saved": len(items)})
+}
+
+func (h *AdminAgentPriceHandler) recordAudit(c *gin.Context, action, object, method string, detail jsonmap.JSON) {
 	if h == nil || h.audit == nil {
 		return
 	}

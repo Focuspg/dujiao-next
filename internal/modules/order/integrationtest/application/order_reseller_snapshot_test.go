@@ -100,6 +100,7 @@ func newOrderResellerSnapshotFixture(t *testing.T) orderResellerSnapshotFixture 
 		&paymentdomain.Payment{},
 		&resellerdomain.Profile{},
 		&resellerdomain.ProductSetting{},
+		&resellerdomain.AgentPrice{},
 		&resellerdomain.RelatedAccount{},
 		&resellerdomain.OrderSnapshot{},
 	); err != nil {

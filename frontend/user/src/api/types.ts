@@ -317,6 +317,7 @@ export interface ResellerProductSettingSKUData {
     is_active: boolean
     setting?: ResellerProductSettingData
     effective_price_amount?: string
+    agent_price_amount?: string
 }
 
 export interface ResellerProductSettingProductData {

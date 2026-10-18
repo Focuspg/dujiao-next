@@ -30,6 +30,7 @@ type resellerPricingStore interface {
 	GetProfileByID(id uint) (*resellerdomain.Profile, error)
 	ListProductSettingsForPricing(resellerID uint, productIDs, skuIDs []uint) ([]resellerdomain.ProductSetting, error)
 	IsActiveRelatedAccount(resellerID, userID uint) (bool, error)
+	ListAgentPricesForPricing(resellerID uint, skuIDs []uint) ([]resellerdomain.AgentPrice, error)
 }
 
 func NewResellerPricingResolver(repo resellerPricingStore) *ResellerPricingResolver {
@@ -53,6 +54,11 @@ func (r *ResellerPricingResolver) ApplyToOrderBuildResult(tenant resellercontrac
 		return nil, err
 	}
 	settingsByProduct, settingsBySKU := buildSettingIndexes(settings)
+	agentPriceRows, err := r.repo.ListAgentPricesForPricing(*tenant.ResellerID, skuIDs)
+	if err != nil {
+		return nil, err
+	}
+	agentPrices := resellerapplication.IndexAgentPrices(agentPriceRows)
 
 	ctx := &resellercontract.OrderPricingContext{
 		ResellerID:     *tenant.ResellerID,
@@ -86,8 +92,10 @@ func (r *ResellerPricingResolver) ApplyToOrderBuildResult(tenant resellercontrac
 		if err := validateResellerUnitAmount(profile, plan.SKU, baseUnit, resellerUnit); err != nil {
 			return nil, err
 		}
+		// 利润按分销商拿货价计算：后台为该分销商设置了代理价时低于零售价，否则等于零售价
+		costUnit := resellerapplication.ResolveCostUnit(baseUnit, agentPrices, plan.SKU.ID)
 		quantity := decimal.NewFromInt(int64(plan.Item.Quantity))
-		baseTotal := baseUnit.Mul(quantity).Round(2)
+		baseTotal := costUnit.Mul(quantity).Round(2)
 		resellerTotal := resellerUnit.Mul(quantity).Round(2)
 		profit := resellerTotal.Sub(baseTotal).Round(2)
 
@@ -114,7 +122,7 @@ func (r *ResellerPricingResolver) ApplyToOrderBuildResult(tenant resellercontrac
 			ProductID:           plan.Product.ID,
 			SKUID:               plan.SKU.ID,
 			Quantity:            plan.Item.Quantity,
-			BaseUnitAmount:      baseUnit,
+			BaseUnitAmount:      costUnit,
 			ResellerUnitAmount:  resellerUnit,
 			BaseTotalAmount:     baseTotal,
 			ResellerTotalAmount: resellerTotal,

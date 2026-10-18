@@ -5,6 +5,7 @@
         <div class="truncate text-sm font-bold text-foreground">{{ label }}</div>
         <div class="mt-1 flex flex-wrap items-center gap-1.5">
           <Badge variant="neutral" size="xs">{{ t('personalCenter.reseller.productSettings.basePrice') }} {{ basePrice }}</Badge>
+          <Badge v-if="agentPrice" variant="neutral" size="xs">{{ t('personalCenter.reseller.productSettings.agentPrice') }} {{ agentPrice }}</Badge>
           <Badge :variant="invalid ? 'danger' : 'accent'" size="xs">{{ t('personalCenter.reseller.productSettings.effectivePrice') }} {{ effectivePrice || '-' }}</Badge>
           <span v-if="invalid && errorHint" class="text-xs font-medium text-destructive">{{ errorHint }}</span>
         </div>
@@ -67,6 +68,7 @@ import type { ResellerProductSettingPayloadItem } from '../../api/types'
 const props = defineProps<{
   label: string
   basePrice: string
+  agentPrice?: string
   effectivePrice?: string
   invalid?: boolean
   errorCode?: string

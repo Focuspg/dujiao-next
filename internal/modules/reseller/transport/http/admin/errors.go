@@ -42,6 +42,8 @@ func respondAdminProductSettingError(c *gin.Context, err error) {
 		ginutil.RespondError(c, response.CodeBadRequest, "error.reseller_price_invalid", nil)
 	case errors.Is(err, resellercontract.ErrMarkupExceeded):
 		ginutil.RespondError(c, response.CodeBadRequest, "error.reseller_markup_exceeded", nil)
+	case errors.Is(err, resellercontract.ErrAgentPriceInvalid):
+		ginutil.RespondError(c, response.CodeBadRequest, "error.reseller_agent_price_invalid", nil)
 	default:
 		ginutil.RespondError(c, response.CodeInternal, "error.save_failed", err)
 	}

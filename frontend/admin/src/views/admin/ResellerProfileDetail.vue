@@ -30,6 +30,7 @@ import { getImageUrl } from '@/utils/image'
 import { notifyError, notifySuccess } from '@/utils/notify'
 import { getResellerProfileStatusKey } from '@/utils/resellerManagement'
 import { adminUrl } from '@/utils/adminBase'
+import ResellerAgentPricePanel from './components/ResellerAgentPricePanel.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -456,7 +457,7 @@ onMounted(fetchDetail)
           </div>
         </TabsContent>
 
-        <TabsContent value="products" class="mt-0">
+        <TabsContent value="products" class="mt-0 space-y-4">
           <div class="rounded-xl border border-border bg-card p-4">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -466,6 +467,7 @@ onMounted(fetchDetail)
               <Button as="a" variant="outline" :href="productSettingsLink">{{ t('admin.resellerProfileDetail.products.openRules') }}</Button>
             </div>
           </div>
+          <ResellerAgentPricePanel :reseller-id="profileId" />
         </TabsContent>
 
         <TabsContent value="finance" class="mt-0 space-y-4">

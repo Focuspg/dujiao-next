@@ -1084,6 +1084,7 @@ export interface AdminResellerProductSettingSKU {
   is_active: boolean
   setting?: AdminResellerProductSettingRule
   effective_price_amount?: string | number
+  agent_price_amount?: string | number
 }
 
 export interface AdminResellerProductSettingDetail {
@@ -1100,6 +1101,26 @@ export interface AdminResellerProductSettingPayloadItem {
   fixed_markup_amount: string
   fixed_price_amount: string
   sort_order: number
+}
+
+export interface AdminResellerAgentPriceSKU {
+  id: number
+  sku_code: string
+  spec_values: Record<string, string>
+  price_amount: string
+  cost_price_amount: string
+  agent_price_amount?: string
+}
+
+export interface AdminResellerAgentPriceProduct {
+  id: number
+  slug: string
+  title: LocalizedText
+  skus: AdminResellerAgentPriceSKU[]
+}
+
+export interface AdminResellerAgentPriceUpdatePayload {
+  items: Array<{ product_id: number; sku_id: number; agent_price_amount: string }>
 }
 
 export interface AdminResellerProductSettingUpdatePayload {

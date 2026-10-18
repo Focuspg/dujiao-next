@@ -1,10 +1,29 @@
-{$SHOP_DOMAIN} {
+{
+	# 分销分站证书按需签发：首次访问某个域名时先问商城，只有后台已启用的分销域名才签发
+	on_demand_tls {
+		ask http://shop:8080/health/tls-ask
+	}
+}
+
+(shop) {
 	encode zstd gzip
 
-	@blocked path /.env* /.git/* /config.yml*
+	@blocked path /.env* /.git/* /config.yml* /health/tls-ask
 	respond @blocked 404
 
 	reverse_proxy shop:8080 {
 		header_up X-Real-IP {remote_host}
 	}
+}
+
+{$SHOP_DOMAIN} {
+	import shop
+}
+
+# 分销分站（二级域名或已审核的自定义域名）
+https:// {
+	tls {
+		on_demand
+	}
+	import shop
 }

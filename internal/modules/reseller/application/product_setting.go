@@ -67,14 +67,17 @@ type ProductSettingDetail struct {
 	Settings         []resellerdomain.ProductSetting
 	EffectiveBySKUID map[uint]decimal.Decimal
 	RuleBySKUID      map[uint]string
+	// AgentPriceBySKUID 分销商对各 SKU 的拿货价（未单独设置代理价时等于零售价）
+	AgentPriceBySKUID map[uint]decimal.Decimal
 }
 
 type ProductSettingListRow struct {
-	Profile          *resellerdomain.Profile
-	Product          productdomain.Product
-	Settings         []resellerdomain.ProductSetting
-	EffectiveBySKUID map[uint]decimal.Decimal
-	RuleBySKUID      map[uint]string
+	Profile           *resellerdomain.Profile
+	Product           productdomain.Product
+	Settings          []resellerdomain.ProductSetting
+	EffectiveBySKUID  map[uint]decimal.Decimal
+	RuleBySKUID       map[uint]string
+	AgentPriceBySKUID map[uint]decimal.Decimal
 }
 
 // ProductSettingPreviewItem 表示某个商品级（SKUID=0）或 SKU 级规则在「拟用配置」下的预览结果。
@@ -106,7 +109,11 @@ func (s *ProductSettingService) ListUserProductSettings(userID uint, input Produ
 	if err != nil {
 		return nil, 0, err
 	}
-	return s.decorateRows(profile, rows), total, nil
+	decorated, err := s.decorateRows(profile, rows)
+	if err != nil {
+		return nil, 0, err
+	}
+	return decorated, total, nil
 }
 
 func (s *ProductSettingService) GetUserProductSetting(userID, productID uint) (*ProductSettingDetail, error) {
@@ -241,14 +248,62 @@ func (s *ProductSettingService) getDetail(profile *resellerdomain.Profile, produ
 	if err != nil {
 		return nil, err
 	}
-	return &ProductSettingDetail{Profile: profile, Product: row.Product, Settings: row.Settings, EffectiveBySKUID: effective, RuleBySKUID: rules}, nil
+	agentPrices, err := s.loadAgentPrices(profile.ID, []productdomain.Product{row.Product})
+	if err != nil {
+		return nil, err
+	}
+	return &ProductSettingDetail{
+		Profile:           profile,
+		Product:           row.Product,
+		Settings:          row.Settings,
+		EffectiveBySKUID:  effective,
+		RuleBySKUID:       rules,
+		AgentPriceBySKUID: resolveAgentPriceBySKU(row.Product, agentPrices),
+	}, nil
 }
 
-func (s *ProductSettingService) decorateRows(profile *resellerdomain.Profile, rows []resellercontract.ProductSettingProductRow) []ProductSettingListRow {
+func (s *ProductSettingService) decorateRows(profile *resellerdomain.Profile, rows []resellercontract.ProductSettingProductRow) ([]ProductSettingListRow, error) {
+	products := make([]productdomain.Product, 0, len(rows))
+	for _, row := range rows {
+		products = append(products, row.Product)
+	}
+	agentPrices, err := s.loadAgentPrices(profile.ID, products)
+	if err != nil {
+		return nil, err
+	}
 	out := make([]ProductSettingListRow, 0, len(rows))
 	for _, row := range rows {
 		effective, rules, _ := computeProductEffectivePrices(profile, row.Product, row.Settings)
-		out = append(out, ProductSettingListRow{Profile: profile, Product: row.Product, Settings: row.Settings, EffectiveBySKUID: effective, RuleBySKUID: rules})
+		out = append(out, ProductSettingListRow{
+			Profile:           profile,
+			Product:           row.Product,
+			Settings:          row.Settings,
+			EffectiveBySKUID:  effective,
+			RuleBySKUID:       rules,
+			AgentPriceBySKUID: resolveAgentPriceBySKU(row.Product, agentPrices),
+		})
+	}
+	return out, nil
+}
+
+func (s *ProductSettingService) loadAgentPrices(resellerID uint, products []productdomain.Product) (map[uint]decimal.Decimal, error) {
+	skuIDs := []uint{}
+	for _, product := range products {
+		for _, sku := range product.SKUs {
+			skuIDs = append(skuIDs, sku.ID)
+		}
+	}
+	rows, err := s.store.ListAgentPrices(resellerID, skuIDs)
+	if err != nil {
+		return nil, err
+	}
+	return IndexAgentPrices(rows), nil
+}
+
+func resolveAgentPriceBySKU(product productdomain.Product, agentPrices map[uint]decimal.Decimal) map[uint]decimal.Decimal {
+	out := make(map[uint]decimal.Decimal, len(product.SKUs))
+	for _, sku := range product.SKUs {
+		out[sku.ID] = ResolveCostUnit(sku.PriceAmount.Decimal, agentPrices, sku.ID)
 	}
 	return out
 }
@@ -550,4 +605,125 @@ func findProductSKU(items []productdomain.ProductSKU, skuID uint) *productdomain
 		}
 	}
 	return nil
+}
+
+// AgentPriceListInput 后台查询某分销商代理价的商品分页条件。
+type AgentPriceListInput struct {
+	Page     int
+	PageSize int
+	Keyword  string
+}
+
+// AgentPriceList 上架商品（含启用的 SKU）及该分销商已设置的代理价。
+type AgentPriceList struct {
+	Products    []productdomain.Product
+	AgentPrices map[uint]decimal.Decimal
+	Total       int64
+}
+
+// AgentPriceInput 单个 SKU 的代理价；PriceAmount 为 nil 表示清除，恢复按零售价拿货。
+type AgentPriceInput struct {
+	ProductID   uint
+	SKUID       uint
+	PriceAmount *decimal.Decimal
+}
+
+// ListAdminAgentPrices 后台按商品分页查看某分销商的代理价。
+func (s *ProductSettingService) ListAdminAgentPrices(resellerID uint, input AgentPriceListInput) (*AgentPriceList, error) {
+	profile, err := s.requireProfileByID(resellerID)
+	if err != nil {
+		return nil, err
+	}
+	rows, total, err := s.store.ListProductsWithSettings(resellercontract.ProductSettingListFilter{
+		Page:       input.Page,
+		PageSize:   input.PageSize,
+		ResellerID: profile.ID,
+		Keyword:    input.Keyword,
+		OnlyActive: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+	products := make([]productdomain.Product, 0, len(rows))
+	for _, row := range rows {
+		products = append(products, row.Product)
+	}
+	agentPrices, err := s.loadAgentPrices(profile.ID, products)
+	if err != nil {
+		return nil, err
+	}
+	return &AgentPriceList{Products: products, AgentPrices: agentPrices, Total: total}, nil
+}
+
+// SaveAdminAgentPrices 后台批量设置或清除某分销商的 SKU 代理价。
+func (s *ProductSettingService) SaveAdminAgentPrices(resellerID uint, items []AgentPriceInput) error {
+	profile, err := s.requireProfileByID(resellerID)
+	if err != nil {
+		return err
+	}
+	// 商品读取走全局连接，必须在开启事务前完成（SQLite 单连接）
+	products := map[uint]*productdomain.Product{}
+	saves := make([]resellerdomain.AgentPrice, 0, len(items))
+	clears := make([]uint, 0, len(items))
+	for _, item := range items {
+		if item.ProductID == 0 || item.SKUID == 0 {
+			return productcontract.ErrProductSKUInvalid
+		}
+		product, ok := products[item.ProductID]
+		if !ok {
+			product, err = s.productRepo.GetAdminByID(strconv.FormatUint(uint64(item.ProductID), 10))
+			if err != nil {
+				return err
+			}
+			if product == nil {
+				return productcontract.ErrNotFound
+			}
+			products[item.ProductID] = product
+		}
+		sku := findProductSKU(product.SKUs, item.SKUID)
+		if sku == nil {
+			return productcontract.ErrProductSKUInvalid
+		}
+		if item.PriceAmount == nil {
+			clears = append(clears, sku.ID)
+			continue
+		}
+		price := item.PriceAmount.Round(2)
+		if price.LessThanOrEqual(decimal.Zero) || price.GreaterThan(sku.PriceAmount.Decimal.Round(2)) {
+			return resellercontract.ErrAgentPriceInvalid
+		}
+		saves = append(saves, resellerdomain.AgentPrice{
+			ResellerID:  profile.ID,
+			ProductID:   product.ID,
+			SKUID:       sku.ID,
+			PriceAmount: money.FromDecimal(price),
+		})
+	}
+	return s.store.WithinProductSettingTransaction(func(store resellercontract.ProductSettingStore) error {
+		for _, skuID := range clears {
+			if err := store.DeleteAgentPrice(profile.ID, skuID); err != nil {
+				return err
+			}
+		}
+		for _, price := range saves {
+			if err := store.SaveAgentPrice(price); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func (s *ProductSettingService) requireProfileByID(resellerID uint) (*resellerdomain.Profile, error) {
+	if s == nil || s.store == nil || s.productRepo == nil || resellerID == 0 {
+		return nil, productcontract.ErrNotFound
+	}
+	profile, err := s.store.GetProfileByID(resellerID)
+	if err != nil {
+		return nil, err
+	}
+	if profile == nil {
+		return nil, productcontract.ErrNotFound
+	}
+	return profile, nil
 }
