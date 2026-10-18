@@ -810,6 +810,7 @@
         "searchPlaceholder": "Search product name, slug, or product ID",
         "empty": "No configurable products",
         "basePrice": "Base price",
+        "agentPrice": "Your cost",
         "edit": "Edit pricing",
         "editorTitle": "Pricing rules",
         "productLevelRule": "Product-level rule",

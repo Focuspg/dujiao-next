@@ -4,6 +4,7 @@ import (
 	"time"
 
 	directchargedomain "github.com/dujiao-next/internal/modules/directcharge/domain"
+	resellercontract "github.com/dujiao-next/internal/modules/reseller/contract"
 )
 
 // UpstreamPreflightRequest 发往上游的预检请求；产品、地区、币种全部来自后台规格
@@ -39,6 +40,8 @@ type OrderRequest struct {
 	ProductID uint
 	SKUID     uint
 	ClientIP  string
+	// Tenant 下单所在站点；分销分站下单时用于归属分销商并按分站价格结算
+	Tenant resellercontract.TenantContext
 }
 
 // OrderRef 已创建的本地订单

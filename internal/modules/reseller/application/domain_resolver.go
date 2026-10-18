@@ -46,6 +46,26 @@ func (r *DomainResolver) ResolveRequest(ctx context.Context, req *http.Request) 
 	return r.ResolveHost(ctx, resellercontract.ResolveRequestHost(req, r.cfg))
 }
 
+// AllowsCertificate 报告是否应为该主机名按需签发 HTTPS 证书：仅限已启用且可用的分销站域名。
+// 供反向代理（Caddy on_demand_tls 的 ask）调用，避免任意域名解析到本机后被滥签证书。
+func (r *DomainResolver) AllowsCertificate(ctx context.Context, rawHost string) (bool, error) {
+	if r == nil || !r.cfg.Enabled {
+		return false, nil
+	}
+	host := resellercontract.NormalizeHost(rawHost)
+	if host == "" {
+		return false, nil
+	}
+	if _, ok := r.mainHosts[host]; ok {
+		return false, nil
+	}
+	tenant, err := r.ResolveHost(ctx, host)
+	if err != nil {
+		return false, err
+	}
+	return tenant.IsReseller(), nil
+}
+
 // ResolveHost 按原始 Host 解析租户上下文。
 func (r *DomainResolver) ResolveHost(ctx context.Context, rawHost string) (resellercontract.TenantContext, error) {
 	host := resellercontract.NormalizeHost(rawHost)

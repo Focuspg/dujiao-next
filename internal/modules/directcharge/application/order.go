@@ -8,6 +8,7 @@ import (
 	"github.com/dujiao-next/internal/logger"
 	directchargecontract "github.com/dujiao-next/internal/modules/directcharge/contract"
 	directchargedomain "github.com/dujiao-next/internal/modules/directcharge/domain"
+	resellercontract "github.com/dujiao-next/internal/modules/reseller/contract"
 )
 
 // CreateOrderInput 用户确认预检结果后创建待支付订单
@@ -15,6 +16,7 @@ type CreateOrderInput struct {
 	UserID       uint
 	PreflightRef string
 	ClientIP     string
+	Tenant       resellercontract.TenantContext
 }
 
 // CreateOrderResult 已创建（或幂等返回）的订单
@@ -71,6 +73,7 @@ func (s *Service) CreateOrder(input CreateOrderInput) (*CreateOrderResult, error
 		ProductID: spec.ProductID,
 		SKUID:     spec.SKUID,
 		ClientIP:  input.ClientIP,
+		Tenant:    input.Tenant,
 	})
 	if err != nil {
 		if releaseErr := s.store.ReleasePreflight(preflight.ID); releaseErr != nil {

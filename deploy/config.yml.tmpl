@@ -52,9 +52,12 @@ order:
   max_refund_days: 30
 
 reseller:
-  enabled: false
+  # 分销分站：二级域名 xxx.__SHOP_DOMAIN__ 需要先把通配符 DNS *.__SHOP_DOMAIN__ 指向本机，
+  # 证书由 Caddy 在首次访问时按需签发（只签后台已启用的分销域名）
+  enabled: true
   main_hosts:
     - "__SHOP_DOMAIN__"
+  subdomain_base: "__SHOP_DOMAIN__"
 
 web:
   admin_path: "__ADMIN_PATH__"

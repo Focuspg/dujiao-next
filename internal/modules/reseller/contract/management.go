@@ -125,4 +125,7 @@ type ProductSettingStore interface {
 	DeleteSetting(resellerID, productID, skuID uint) error
 	ListAdminSettings(filter ProductSettingAdminListFilter) ([]resellerdomain.ProductSetting, int64, error)
 	SummarizeByResellerID(resellerID uint) (ProductSettingSummary, error)
+	ListAgentPrices(resellerID uint, skuIDs []uint) ([]resellerdomain.AgentPrice, error)
+	SaveAgentPrice(price resellerdomain.AgentPrice) error
+	DeleteAgentPrice(resellerID, skuID uint) error
 }

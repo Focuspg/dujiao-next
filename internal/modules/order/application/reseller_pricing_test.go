@@ -22,6 +22,7 @@ type resellerPricingRepoStub struct {
 	profile         *resellerdomain.Profile
 	settings        []resellerdomain.ProductSetting
 	related         map[uint]bool
+	agentPrices     []resellerdomain.AgentPrice
 	profileQueries  int
 	settingsQueries int
 	relatedQueries  int
@@ -46,6 +47,12 @@ func (r *resellerPricingRepoStub) ListProductSettingsForPricing(resellerID uint,
 func (r *resellerPricingRepoStub) IsActiveRelatedAccount(resellerID uint, userID uint) (bool, error) {
 	r.relatedQueries++
 	return r.related[userID], nil
+}
+
+func (r *resellerPricingRepoStub) ListAgentPricesForPricing(resellerID uint, skuIDs []uint) ([]resellerdomain.AgentPrice, error) {
+	rows := make([]resellerdomain.AgentPrice, len(r.agentPrices))
+	copy(rows, r.agentPrices)
+	return rows, nil
 }
 
 func testResellerProfile() *resellerdomain.Profile {
@@ -644,5 +651,49 @@ func TestResellerPricingResolverDisplayHidesInvalidSKUWithoutFailing(t *testing.
 	}
 	if result.DisplaySKUID != 11 || !result.DisplayPrice.Decimal.Equal(decimal.NewFromInt(130)) {
 		t.Fatalf("expected display fall back to valid sku 11@130, got %+v", result)
+	}
+}
+
+func TestResellerPricingResolverUsesAgentPriceAsCost(t *testing.T) {
+	profile := testResellerProfile()
+	profile.DefaultMarkupPercent = money.FromDecimal(decimal.Zero)
+	repo := &resellerPricingRepoStub{
+		profile: profile,
+		related: map[uint]bool{},
+		agentPrices: []resellerdomain.AgentPrice{
+			{ResellerID: 10, ProductID: 1, SKUID: 11, PriceAmount: money.FromDecimal(decimal.NewFromInt(80))},
+			// 代理价高于零售价（零售价后来被调低）时按零售价计，利润不为负
+			{ResellerID: 10, ProductID: 2, SKUID: 22, PriceAmount: money.FromDecimal(decimal.NewFromInt(90))},
+		},
+	}
+	resolver := NewResellerPricingResolver(repo)
+	type line = struct {
+		productID uint
+		skuID     uint
+		base      decimal.Decimal
+		cost      decimal.Decimal
+		quantity  int
+	}
+	result := testOrderBuildResult(
+		line{productID: 1, skuID: 11, base: decimal.NewFromInt(100), cost: decimal.NewFromInt(50), quantity: 2},
+		line{productID: 2, skuID: 22, base: decimal.NewFromInt(80), cost: decimal.NewFromInt(40), quantity: 1},
+	)
+
+	ctx, err := resolver.ApplyToOrderBuildResult(testResellerTenant(), 123, result)
+	if err != nil {
+		t.Fatalf("ApplyToOrderBuildResult failed: %v", err)
+	}
+	// 分站按零售价继承售卖：100*2 + 80 = 280；拿货价 80*2 + 80 = 240；利润 40
+	if !result.TotalAmount.Equal(decimal.NewFromInt(280)) {
+		t.Fatalf("buyer total = %s, want 280", result.TotalAmount)
+	}
+	if !ctx.BaseAmount.Equal(decimal.NewFromInt(240)) || !ctx.ProfitAmount.Equal(decimal.NewFromInt(40)) {
+		t.Fatalf("base=%s profit=%s, want 240/40", ctx.BaseAmount, ctx.ProfitAmount)
+	}
+	if !ctx.Items[0].BaseUnitAmount.Equal(decimal.NewFromInt(80)) || !ctx.Items[0].ProfitAmount.Equal(decimal.NewFromInt(40)) {
+		t.Fatalf("item0 base unit=%s profit=%s", ctx.Items[0].BaseUnitAmount, ctx.Items[0].ProfitAmount)
+	}
+	if !ctx.Items[1].BaseUnitAmount.Equal(decimal.NewFromInt(80)) || !ctx.Items[1].ProfitAmount.IsZero() {
+		t.Fatalf("item1 base unit=%s profit=%s", ctx.Items[1].BaseUnitAmount, ctx.Items[1].ProfitAmount)
 	}
 }

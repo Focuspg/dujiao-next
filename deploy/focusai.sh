@@ -245,6 +245,21 @@ smoke_test() {
 	fi
 }
 
+# Caddyfile 以单文件挂载，内容变化后要重建容器才会生效。先在隔离容器里校验，坏配置不会让入口停掉。
+reload_caddy_config() {
+	local domain
+	domain="$(env_get "$SHOP_DIR/.env" SHOP_DOMAIN)"
+	if docker run --rm --network none -e SHOP_DOMAIN="$domain" -v "$SHOP_DIR/Caddyfile:/etc/caddy/Caddyfile:ro" \
+		caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1; then
+		log "Caddyfile 有更新，重建 Caddy"
+		compose up -d --force-recreate caddy
+		wait_healthy caddy || log "警告：Caddy 重建后未就绪，请查看 caddy 日志"
+	else
+		log "警告：新 Caddyfile 校验未通过，Caddy 继续使用旧配置；请检查 $SHOP_DIR/Caddyfile"
+		compose up -d caddy
+	fi
+}
+
 cmd_upgrade() {
 	require_root
 	local tag=${1:-} current
@@ -253,6 +268,8 @@ cmd_upgrade() {
 	current="$(env_get "$SHOP_DIR/.env" SHOP_IMAGE)"
 	[[ $current != "$IMAGE_REPO:$tag" ]] || die "已经是 $tag"
 
+	local caddy_before
+	caddy_before="$(sha256sum "$SHOP_DIR/Caddyfile" 2>/dev/null || true)"
 	sync_files
 	log "先拉取新镜像：$IMAGE_REPO:$tag"
 	docker image inspect "$IMAGE_REPO:$tag" >/dev/null 2>&1 || docker pull "$IMAGE_REPO:$tag" >/dev/null
@@ -265,7 +282,11 @@ cmd_upgrade() {
 		log "新版本未就绪。可运行 rollback 换回 $current；若新版本已改动数据库结构，需配合 restore 恢复升级前备份"
 		exit 1
 	fi
-	compose up -d caddy
+	if [[ $(sha256sum "$SHOP_DIR/Caddyfile") != "$caddy_before" ]]; then
+		reload_caddy_config
+	else
+		compose up -d caddy
+	fi
 	smoke_test || true
 	docker image prune -f >/dev/null || true
 	log "已升级到 $tag"

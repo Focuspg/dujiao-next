@@ -77,6 +77,7 @@ func registerAdminRoutes(
 	adminResellerProfileDetailHandler *resellertransport.AdminProfileDetailHandler,
 	adminResellerSiteConfigHandler *resellertransport.AdminSiteConfigHandler,
 	adminResellerProductSettingHandler *resellertransport.AdminProductSettingHandler,
+	adminResellerAgentPriceHandler *resellertransport.AdminAgentPriceHandler,
 	adminResellerOperationsHandler *resellertransport.AdminOperationsHandler,
 	adminResellerFinanceHandler *resellertransport.AdminFinanceHandler,
 	adminSettingsHandler *settingstransport.AdminHandler,
@@ -138,6 +139,7 @@ func registerAdminRoutes(
 	resellertransport.RegisterProfileDetailRoutes(authorized, adminResellerProfileDetailHandler)
 	resellertransport.RegisterSiteConfigRoutes(authorized, adminResellerSiteConfigHandler)
 	resellertransport.RegisterProductSettingRoutes(authorized, adminResellerProductSettingHandler)
+	resellertransport.RegisterAgentPriceRoutes(authorized, adminResellerAgentPriceHandler)
 	resellertransport.RegisterOperationsFinanceRoutes(paymentProtected, adminResellerOperationsHandler)
 	resellertransport.RegisterFinanceRoutes(paymentProtected, adminResellerFinanceHandler)
 

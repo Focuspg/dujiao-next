@@ -172,6 +172,8 @@ type ResellerProductSettingSKUResp struct {
 	IsActive        bool                        `json:"is_active"`
 	Setting         *ResellerProductSettingResp `json:"setting,omitempty"`
 	EffectivePrice  string                      `json:"effective_price_amount,omitempty"`
+	// AgentPrice 分销商拿货价：后台单独设置的代理价，未设置时等于零售价
+	AgentPrice string `json:"agent_price_amount,omitempty"`
 }
 
 type ResellerProductSettingDetailResp struct {
@@ -181,10 +183,11 @@ type ResellerProductSettingDetailResp struct {
 }
 
 type ResellerProductSettingDTOInput struct {
-	Product          productdomain.Product
-	Settings         []resellerdomain.ProductSetting
-	EffectiveBySKUID map[uint]string
-	RuleBySKUID      map[uint]string
+	Product           productdomain.Product
+	Settings          []resellerdomain.ProductSetting
+	EffectiveBySKUID  map[uint]string
+	RuleBySKUID       map[uint]string
+	AgentPriceBySKUID map[uint]string
 }
 
 type AdminResellerProductSettingUserResp struct {
@@ -412,6 +415,7 @@ func NewResellerProductSettingDetailResp(input ResellerProductSettingDTOInput) R
 			IsActive:        sku.IsActive,
 			Setting:         settingResp,
 			EffectivePrice:  input.EffectiveBySKUID[sku.ID],
+			AgentPrice:      input.AgentPriceBySKUID[sku.ID],
 		})
 	}
 	return resp
@@ -626,4 +630,47 @@ func NewResellerDashboardResp(opened bool, profile *resellerdomain.Profile, bala
 		WithdrawEnabled:        withdrawEnabled,
 		WithdrawDisabledReason: withdrawDisabledReason,
 	}
+}
+
+// AdminResellerAgentPriceSKUResp 后台代理价列表中的 SKU 行。
+type AdminResellerAgentPriceSKUResp struct {
+	ID               uint         `json:"id"`
+	SKUCode          string       `json:"sku_code"`
+	SpecValues       jsonmap.JSON `json:"spec_values"`
+	PriceAmount      string       `json:"price_amount"`
+	CostPriceAmount  string       `json:"cost_price_amount"`
+	AgentPriceAmount string       `json:"agent_price_amount"`
+}
+
+// AdminResellerAgentPriceProductResp 后台代理价列表中的商品行。
+type AdminResellerAgentPriceProductResp struct {
+	ID    uint                             `json:"id"`
+	Slug  string                           `json:"slug"`
+	Title jsonmap.JSON                     `json:"title"`
+	SKUs  []AdminResellerAgentPriceSKUResp `json:"skus"`
+}
+
+// NewAdminResellerAgentPriceRespList 构造后台代理价列表；agentPrices 为已设置的代理价（两位小数字符串）。
+func NewAdminResellerAgentPriceRespList(products []productdomain.Product, agentPrices map[uint]string) []AdminResellerAgentPriceProductResp {
+	out := make([]AdminResellerAgentPriceProductResp, 0, len(products))
+	for _, product := range products {
+		row := AdminResellerAgentPriceProductResp{
+			ID:    product.ID,
+			Slug:  product.Slug,
+			Title: product.TitleJSON,
+			SKUs:  make([]AdminResellerAgentPriceSKUResp, 0, len(product.SKUs)),
+		}
+		for _, sku := range product.SKUs {
+			row.SKUs = append(row.SKUs, AdminResellerAgentPriceSKUResp{
+				ID:               sku.ID,
+				SKUCode:          sku.SKUCode,
+				SpecValues:       sku.SpecValuesJSON,
+				PriceAmount:      sku.PriceAmount.String(),
+				CostPriceAmount:  sku.CostPriceAmount.String(),
+				AgentPriceAmount: agentPrices[sku.ID],
+			})
+		}
+		out = append(out, row)
+	}
+	return out
 }

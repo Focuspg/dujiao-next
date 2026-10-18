@@ -176,6 +176,8 @@ func BuiltinRoleSeeds() []RoleSeed {
 				{Object: "/admin/resellers/profiles/:id", Action: "GET"},
 				{Object: "/admin/resellers/profiles/:id", Action: "PUT"},
 				{Object: "/admin/resellers/profiles/:id/system-domain", Action: "PUT"},
+				{Object: "/admin/resellers/profiles/:id/agent-prices", Action: "GET"},
+				{Object: "/admin/resellers/profiles/:id/agent-prices", Action: "PUT"},
 				{Object: "/admin/resellers/profiles/:id/approve", Action: "POST"},
 				{Object: "/admin/resellers/profiles/:id/reject", Action: "POST"},
 				{Object: "/admin/resellers/domains", Action: "GET"},

@@ -763,6 +763,7 @@
         "searchPlaceholder": "搜索商品名称、Slug 或商品 ID",
         "empty": "暂无可配置商品",
         "basePrice": "主站基准价",
+        "agentPrice": "拿货价",
         "edit": "编辑售价",
         "editorTitle": "售价规则",
         "productLevelRule": "商品级规则",
