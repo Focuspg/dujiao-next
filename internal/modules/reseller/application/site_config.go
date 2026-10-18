@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
-	"net/mail"
 	"net/url"
 	"strings"
 
@@ -133,18 +132,7 @@ func validateSupportURL(raw string) (string, error) {
 	if value == "" {
 		return "", nil
 	}
-	if strings.HasPrefix(value, "tg://") {
-		return value, nil
-	}
-	if strings.HasPrefix(value, "mailto:") {
-		addr := strings.TrimPrefix(value, "mailto:")
-		if _, err := mail.ParseAddress(addr); err != nil {
-			return "", resellercontract.ErrSiteConfigInvalid
-		}
-		return value, nil
-	}
-	parsed, err := url.Parse(value)
-	if err != nil || parsed.Host == "" || parsed.Scheme != "https" {
+	if !contactlink.IsSupportURL(value) {
 		return "", resellercontract.ErrSiteConfigInvalid
 	}
 	return value, nil
@@ -163,7 +151,7 @@ func NormalizeResellerSupport(input ResellerSupportInput) (jsonmap.JSON, error) 
 	email := trimLimit(input.Email, 320)
 	email = strings.TrimPrefix(email, "mailto:")
 	if email != "" {
-		if _, err := mail.ParseAddress(email); err != nil {
+		if !contactlink.IsEmail(email) {
 			return nil, newResellerFieldError("support_email")
 		}
 	}
