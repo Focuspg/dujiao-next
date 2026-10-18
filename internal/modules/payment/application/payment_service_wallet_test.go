@@ -1490,3 +1490,40 @@ func TestEnqueueOrderPaidAsyncRetriesFailedAffiliateCommission(t *testing.T) {
 		t.Fatalf("expected affiliate retry enqueued for order 42, got %v", queue.retried)
 	}
 }
+
+type recordingResellerActivation struct {
+	calls []string
+	err   error
+}
+
+func (r *recordingResellerActivation) FulfillResellerActivation(orderID, userID uint, subdomain string) error {
+	r.calls = append(r.calls, fmt.Sprintf("%d:%d:%s", orderID, userID, subdomain))
+	return r.err
+}
+
+// 开通代理子订单支付后立即开通（不依赖队列），用下单时填写的二级域名前缀和父订单用户。
+func TestEnqueueOrderPaidAsyncFulfillsResellerActivationChildren(t *testing.T) {
+	activation := &recordingResellerActivation{}
+	svc := &PaymentService{resellerActivation: activation}
+	order := &orderdomain.Order{
+		ID:     10,
+		UserID: 7,
+		Children: []orderdomain.Order{
+			{ID: 11, Items: []orderdomain.OrderItem{{
+				FulfillmentType:          constants.FulfillmentTypeResellerActivation,
+				ManualFormSubmissionJSON: map[string]interface{}{constants.ResellerActivationSubdomainField: "xiaoming"},
+			}}},
+			{ID: 12, Items: []orderdomain.OrderItem{{FulfillmentType: constants.FulfillmentTypeAuto}}},
+		},
+	}
+	svc.enqueueOrderPaidAsync(order, nil, zap.NewNop().Sugar())
+	if len(activation.calls) != 1 || activation.calls[0] != "11:7:xiaoming" {
+		t.Fatalf("expected one activation for child 11, got %v", activation.calls)
+	}
+	if hasManualFulfillmentItems(&order.Children[0]) {
+		t.Fatalf("reseller activation items must not trigger manual-pending notification on success")
+	}
+	if !shouldMarkFulfilling(&order.Children[0]) {
+		t.Fatalf("reseller activation order should be marked fulfilling after payment")
+	}
+}

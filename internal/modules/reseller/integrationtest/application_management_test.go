@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	resellercontract "github.com/dujiao-next/internal/modules/reseller/contract"
 	resellergormstore "github.com/dujiao-next/internal/modules/reseller/infrastructure/gormstore"
 
 	resellerdomain "github.com/dujiao-next/internal/modules/reseller/domain"
@@ -287,5 +288,92 @@ func TestResellerManagementDisablePrimaryDomainPromotesNextActiveVerifiedDomain(
 	}
 	if !loadedSecondary.IsPrimary {
 		t.Fatalf("expected active verified secondary domain to become primary: %+v", loadedSecondary)
+	}
+}
+
+func TestResellerManagementPaidActivationCreatesActiveResellerWithSubdomain(t *testing.T) {
+	db := openResellerManagementServiceTestDB(t)
+	user := seedResellerManagementUser(t, db, "paid-activation@example.test")
+	svc := NewResellerManagementService(resellergormstore.New(db), config.ResellerConfig{
+		Enabled:       true,
+		SubdomainBase: "shop.example.test",
+		MainHosts:     []string{"main.example.test"},
+	})
+
+	if err := svc.CheckPaidActivation(user.ID, "xiaoming"); err != nil {
+		t.Fatalf("CheckPaidActivation failed: %v", err)
+	}
+	for _, label := range []string{"www", "admin", "a.b", "-bad", ""} {
+		if err := svc.CheckPaidActivation(user.ID, label); !errors.Is(err, resellercontract.ErrDomainInvalid) {
+			t.Fatalf("expected ErrDomainInvalid for %q, got %v", label, err)
+		}
+	}
+
+	domain, err := svc.ActivatePaidReseller(context.Background(), user.ID, "xiaoming")
+	if err != nil {
+		t.Fatalf("ActivatePaidReseller failed: %v", err)
+	}
+	if domain.Domain != "xiaoming.shop.example.test" || !domain.IsPrimary || domain.Status != resellerdomain.DomainStatusActive || domain.VerificationStatus != resellerdomain.DomainVerificationVerified {
+		t.Fatalf("unexpected activated domain: %+v", domain)
+	}
+	var profile resellerdomain.Profile
+	if err := db.Where("user_id = ?", user.ID).First(&profile).Error; err != nil {
+		t.Fatalf("load profile failed: %v", err)
+	}
+	if profile.Status != resellerdomain.ProfileStatusActive || !profile.DefaultMarkupPercent.Decimal.IsZero() || !profile.MaxMarkupPercent.Decimal.Equal(decimal.NewFromInt(50)) || domain.ResellerID != profile.ID {
+		t.Fatalf("unexpected activated profile: %+v", profile)
+	}
+
+	// 重复投递幂等：同一用户同一域名直接返回已开通的域名
+	again, err := svc.ActivatePaidReseller(context.Background(), user.ID, "xiaoming")
+	if err != nil || again.ID != domain.ID {
+		t.Fatalf("expected idempotent activation, got domain=%+v err=%v", again, err)
+	}
+	if err := svc.CheckPaidActivation(user.ID, "another"); !errors.Is(err, resellercontract.ErrAlreadyReseller) {
+		t.Fatalf("expected ErrAlreadyReseller, got %v", err)
+	}
+	if _, err := svc.ActivatePaidReseller(context.Background(), user.ID, "another"); !errors.Is(err, resellercontract.ErrAlreadyReseller) {
+		t.Fatalf("expected ErrAlreadyReseller on second activation, got %v", err)
+	}
+
+	other := seedResellerManagementUser(t, db, "paid-activation-other@example.test")
+	if err := svc.CheckPaidActivation(other.ID, "xiaoming"); !errors.Is(err, resellercontract.ErrDomainConflict) {
+		t.Fatalf("expected ErrDomainConflict for taken subdomain, got %v", err)
+	}
+	if _, err := svc.ActivatePaidReseller(context.Background(), other.ID, "xiaoming"); !errors.Is(err, resellercontract.ErrDomainConflict) {
+		t.Fatalf("expected ErrDomainConflict on activation, got %v", err)
+	}
+	var otherProfiles int64
+	if err := db.Model(&resellerdomain.Profile{}).Where("user_id = ?", other.ID).Count(&otherProfiles).Error; err != nil {
+		t.Fatalf("count profiles failed: %v", err)
+	}
+	if otherProfiles != 0 {
+		t.Fatalf("failed activation must roll back the profile, got %d", otherProfiles)
+	}
+}
+
+func TestResellerManagementPaidActivationActivatesPendingAndRejectsDisabled(t *testing.T) {
+	db := openResellerManagementServiceTestDB(t)
+	pendingUser := seedResellerManagementUser(t, db, "paid-pending@example.test")
+	svc := newResellerManagementServiceForTest(db)
+	pending, err := svc.ApplyUserReseller(pendingUser.ID, ResellerApplyInput{Reason: "pending"})
+	if err != nil {
+		t.Fatalf("apply failed: %v", err)
+	}
+	if _, err := svc.ActivatePaidReseller(context.Background(), pendingUser.ID, "pending"); err != nil {
+		t.Fatalf("activate pending profile failed: %v", err)
+	}
+	var reloaded resellerdomain.Profile
+	if err := db.First(&reloaded, pending.ID).Error; err != nil || reloaded.Status != resellerdomain.ProfileStatusActive {
+		t.Fatalf("expected pending profile to become active, got %+v err=%v", reloaded, err)
+	}
+
+	disabledUser := seedResellerManagementUser(t, db, "paid-disabled@example.test")
+	disabled := resellerdomain.Profile{UserID: disabledUser.ID, Status: resellerdomain.ProfileStatusDisabled, SettlementStatus: resellerdomain.SettlementStatusNormal}
+	if err := db.Create(&disabled).Error; err != nil {
+		t.Fatalf("create disabled profile failed: %v", err)
+	}
+	if err := svc.CheckPaidActivation(disabledUser.ID, "disabled"); !errors.Is(err, ErrResellerProfileInactive) {
+		t.Fatalf("expected ErrResellerProfileInactive, got %v", err)
 	}
 }

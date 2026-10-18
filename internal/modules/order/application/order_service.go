@@ -50,7 +50,21 @@ type OrderService struct {
 	resellerAccounting      resellerAccountingTransactions
 	riskControlSvc          orderriskcontract.Controller
 	productMappingService   upstreamStockEnsurer
+	resellerActivation      ResellerActivationChecker
 	expireMinutes           int
+}
+
+// ResellerActivationChecker 付费开通代理下单前的资格与域名校验（由分销模块实现）。
+type ResellerActivationChecker interface {
+	CheckPaidActivation(userID uint, subdomain string) error
+}
+
+// SetResellerActivationChecker 注入付费开通代理的下单校验。
+func (s *OrderService) SetResellerActivationChecker(checker ResellerActivationChecker) {
+	if s == nil {
+		return
+	}
+	s.resellerActivation = checker
 }
 
 type OrderMemberLevelService interface {

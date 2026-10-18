@@ -203,6 +203,7 @@ const purchaseTypeBadgeClass = (product: AdminProduct) => {
 
 const fulfillmentTypeBadgeClass = (product: AdminProduct) => {
   if (product?.fulfillment_type === 'direct_charge') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+  if (product?.fulfillment_type === 'reseller_activation') return 'border-rose-200 bg-rose-50 text-rose-700'
   return product?.fulfillment_type === 'auto'
     ? 'border-violet-200 bg-violet-50 text-violet-700'
     : 'border-amber-200 bg-amber-50 text-amber-700'
@@ -210,6 +211,7 @@ const fulfillmentTypeBadgeClass = (product: AdminProduct) => {
 
 const fulfillmentTypeLabel = (product: AdminProduct) => {
   if (product?.fulfillment_type === 'direct_charge') return t('admin.products.fulfillmentType.directCharge')
+  if (product?.fulfillment_type === 'reseller_activation') return t('admin.products.fulfillmentType.resellerActivation')
   return product?.fulfillment_type === 'auto' ? t('admin.products.fulfillmentType.auto') : t('admin.products.fulfillmentType.manual')
 }
 

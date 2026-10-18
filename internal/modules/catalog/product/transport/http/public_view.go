@@ -124,7 +124,7 @@ func (v *publicProductView) skuStockState(sv publicSKUView) (string, int64) {
 	if fulfillmentType == "" {
 		fulfillmentType = constants.FulfillmentTypeManual
 	}
-	if fulfillmentType == constants.FulfillmentTypeDirectCharge {
+	if fulfillmentType == constants.FulfillmentTypeDirectCharge || fulfillmentType == constants.FulfillmentTypeResellerActivation {
 		return constants.ProductStockStatusUnlimited, int64(constants.ManualStockUnlimited)
 	}
 	quantity := domaincatalog.StockQuantity(fulfillmentType, sv.AutoStockAvailable, sv.ManualStockTotal)
@@ -250,6 +250,10 @@ func (h *PublicHandler) decoratePublicProductForTenant(
 	}
 	if product == nil {
 		return productpresenter.Product{}, nil
+	}
+	// 开通代理商品只在主站售卖，分站不展示
+	if strings.TrimSpace(product.FulfillmentType) == constants.FulfillmentTypeResellerActivation {
+		return productpresenter.Product{}, productcontract.ErrResellerProductNotListed
 	}
 	if h == nil || h.pricer == nil {
 		return productpresenter.Product{}, productcontract.ErrResellerProductNotListed

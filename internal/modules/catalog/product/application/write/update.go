@@ -108,6 +108,10 @@ func (s *WriteService) Update(id string, input CreateProductInput) (*productdoma
 		}
 		product.ManualFormSchemaJSON = normalizedSchemaJSON
 	}
+	// 开通代理商品的下单表单固定为二级域名前缀，不接受后台自定义
+	if fulfillmentType == constants.FulfillmentTypeResellerActivation {
+		product.ManualFormSchemaJSON = manualform.ResellerActivationSchema()
+	}
 
 	manualStockTotal := product.ManualStockTotal
 	if input.ManualStockTotal != nil {

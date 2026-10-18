@@ -864,8 +864,10 @@ watch(
                 <SelectItem value="manual">{{ t('admin.products.fulfillmentType.manual') }}</SelectItem>
                 <SelectItem value="auto">{{ t('admin.products.fulfillmentType.auto') }}</SelectItem>
                 <SelectItem value="direct_charge">{{ t('admin.products.fulfillmentType.directCharge') }}</SelectItem>
+                <SelectItem value="reseller_activation">{{ t('admin.products.fulfillmentType.resellerActivation') }}</SelectItem>
               </SelectContent>
             </Select>
+            <p v-if="form.fulfillment_type === 'reseller_activation'" class="mt-1 text-xs text-muted-foreground">{{ t('admin.products.resellerActivationHint') }}</p>
             <p v-if="editingIsMapped" class="mt-1 text-xs text-indigo-600">{{ t('admin.products.mappedFulfillmentLocked') }}</p>
           </div>
 

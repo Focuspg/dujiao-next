@@ -172,7 +172,8 @@
     "fulfillmentType": {
       "manual": "人工交付",
       "auto": "自动交付",
-      "direct_charge": "账号代充"
+      "direct_charge": "账号代充",
+      "reseller_activation": "开通代理"
     },
     "filter": "筛选",
     "closeFilter": "关闭筛选",
@@ -1369,6 +1370,9 @@
       "domainCount": "域名数量",
       "unavailableTitle": "当前无需提交申请",
       "unavailableDescription": "如状态已启用，可直接使用其他分销模块。",
+      "purchaseTitle": "购买开通代理",
+      "purchaseDescription": "本站通过购买「开通代理」商品成为代理：下单时填写分站二级域名前缀，付款后自动开通并分配域名。",
+      "purchaseAction": "去购买",
       "stepSubmit": "提交申请",
       "stepReview": "平台审核",
       "stepActive": "已启用",

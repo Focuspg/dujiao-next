@@ -130,6 +130,10 @@ func (s *WriteService) Create(input CreateProductInput) (*productdomain.Product,
 		}
 		product.ManualFormSchemaJSON = normalizedSchemaJSON
 	}
+	// 开通代理商品的下单表单固定为二级域名前缀，不接受后台自定义
+	if fulfillmentType == constants.FulfillmentTypeResellerActivation {
+		product.ManualFormSchemaJSON = manualform.ResellerActivationSchema()
+	}
 
 	if err := s.transactions.WithinTransaction(func(repositories TransactionRepositories) error {
 		productRepo := repositories.Products

@@ -172,7 +172,8 @@
     "fulfillmentType": {
       "manual": "人工交付",
       "auto": "自動交付",
-      "direct_charge": "帳號代充"
+      "direct_charge": "帳號代充",
+      "reseller_activation": "開通代理"
     },
     "filter": "篩選",
     "closeFilter": "關閉篩選",
@@ -1416,6 +1417,9 @@
       "domainCount": "域名數量",
       "unavailableTitle": "目前無需提交申請",
       "unavailableDescription": "如狀態已啟用，可直接使用其他分銷模組。",
+      "purchaseTitle": "購買開通代理",
+      "purchaseDescription": "本站透過購買「開通代理」商品成為代理：下單時填寫分站二級網域前綴，付款後自動開通並分配網域。",
+      "purchaseAction": "前往購買",
       "stepSubmit": "提交申請",
       "stepReview": "平台審核",
       "stepActive": "已啟用",
