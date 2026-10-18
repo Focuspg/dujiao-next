@@ -86,14 +86,18 @@ func (s *PaymentService) HandleSyncCallback(
 }
 
 // epayProviderRefConflict 易支付下单时已拿到网关单号，回调里的 trade_no 必须与之一致，
-// 防止同一商户单号被另一笔网关交易冒认。跳转模式下单时没有网关单号，不做比对。
+// 防止同一商户单号被另一笔网关交易冒认。跳转模式下单时没有网关单号，
+// ProviderRef 兜底存的是我们自己提交的商户单号，这种情况不做比对。
 func epayProviderRefConflict(channel *paymentdomain.PaymentChannel, payment *paymentdomain.Payment, result *paymentcontract.GatewayCallbackResult) bool {
 	if !strings.EqualFold(strings.TrimSpace(channel.ProviderType), constants.PaymentProviderEpay) {
 		return false
 	}
 	stored := strings.TrimSpace(payment.ProviderRef)
 	incoming := strings.TrimSpace(result.ProviderRef)
-	return stored != "" && incoming != "" && stored != incoming
+	if stored == "" || incoming == "" || stored == incoming {
+		return false
+	}
+	return stored != strings.TrimSpace(payment.GatewayOrderNo) && stored != strings.TrimSpace(result.OrderNo)
 }
 
 // HandlePaypalWebhook 处理 PayPal webhook。
