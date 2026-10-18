@@ -51,7 +51,8 @@ func (s *OrderService) buildOrderResult(input orderCreateParams) (*orderBuildRes
 		return nil, ErrInvalidOrderItem
 	}
 	if input.DirectCharge {
-		if len(mergedItems) != 1 || mergedItems[0].Quantity != 1 || resellerOrder || input.IsGuest ||
+		// 分站也可以下代充单，按分站售价收款、按代理价结算利润
+		if len(mergedItems) != 1 || mergedItems[0].Quantity != 1 || input.IsGuest ||
 			strings.TrimSpace(input.CouponCode) != "" || strings.TrimSpace(input.AffiliateCode) != "" {
 			return nil, ErrDirectChargeOrderInvalid
 		}

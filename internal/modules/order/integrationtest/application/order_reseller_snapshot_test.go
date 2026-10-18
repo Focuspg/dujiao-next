@@ -647,3 +647,37 @@ func TestOrderServiceTenantScopedGuestQueries(t *testing.T) {
 		t.Fatalf("expected only reseller guest order, total=%d orders=%+v", total, orders)
 	}
 }
+
+// 代理分站可以下代充单：售价按分站定价，利润 = 分站售价 - 代理价。
+func TestCreateOrderResellerDirectChargeUsesAgentPrice(t *testing.T) {
+	f := newOrderResellerSnapshotFixture(t)
+	product, sku := f.addResellerSnapshotProduct(t, "codex-250", decimal.NewFromInt(80), decimal.Zero, decimal.NewFromInt(5))
+	if err := f.db.Model(&productdomain.Product{}).Where("id = ?", product.ID).Update("fulfillment_type", constants.FulfillmentTypeDirectCharge).Error; err != nil {
+		t.Fatalf("mark product direct charge failed: %v", err)
+	}
+	agentPrice := resellerdomain.AgentPrice{ResellerID: f.profile.ID, ProductID: product.ID, SKUID: sku.ID, PriceAmount: money.FromDecimal(decimal.NewFromInt(70))}
+	if err := f.db.Create(&agentPrice).Error; err != nil {
+		t.Fatalf("create agent price failed: %v", err)
+	}
+	input := CreateOrderInput{
+		UserID:       f.buyer.ID,
+		Tenant:       f.tenant,
+		DirectCharge: true,
+		Items:        []CreateOrderItem{{ProductID: product.ID, SKUID: sku.ID, Quantity: 1}},
+	}
+	order, err := f.svc.CreateOrder(input)
+	if err != nil {
+		t.Fatalf("CreateOrder reseller direct charge failed: %v", err)
+	}
+	if order.ResellerID == nil || *order.ResellerID != f.profile.ID {
+		t.Fatalf("expected reseller order, got %+v", order.ResellerID)
+	}
+	if !order.TotalAmount.Decimal.Equal(decimal.NewFromInt(85)) || !order.ResellerProfitAmount.Decimal.Equal(decimal.NewFromInt(15)) {
+		t.Fatalf("expected total 85 profit 15, got total=%s profit=%s", order.TotalAmount.String(), order.ResellerProfitAmount.String())
+	}
+
+	input.Items[0].Quantity = 2
+	if _, err := f.svc.CreateOrder(input); !errors.Is(err, ErrDirectChargeOrderInvalid) {
+		t.Fatalf("reseller direct charge must stay single quantity, got %v", err)
+	}
+}
