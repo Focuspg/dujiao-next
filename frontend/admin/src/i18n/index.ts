@@ -3216,6 +3216,10 @@ const messages = {
           telegramPlaceholder: 'https://telegram.me/...',
           whatsapp: 'WhatsApp 链接',
           whatsappPlaceholder: 'https://wa.me/...',
+          email: '邮箱',
+          emailPlaceholder: 'support@example.com',
+          supportUrl: '客服链接',
+          supportUrlPlaceholder: 'https://...（QQ 群加群链接、在线客服页等）',
         },
         footerLinks: {
           title: '页脚自定义链接',
@@ -7900,6 +7904,10 @@ const messages = {
           telegramPlaceholder: 'https://telegram.me/...',
           whatsapp: 'WhatsApp 連結',
           whatsappPlaceholder: 'https://wa.me/...',
+          email: '信箱',
+          emailPlaceholder: 'support@example.com',
+          supportUrl: '客服連結',
+          supportUrlPlaceholder: 'https://...（QQ 群加群連結、線上客服頁等）',
         },
         footerLinks: {
           title: '頁尾自訂連結',
@@ -12584,6 +12592,10 @@ const messages = {
           telegramPlaceholder: 'https://telegram.me/...',
           whatsapp: 'WhatsApp',
           whatsappPlaceholder: 'https://wa.me/...',
+          email: 'Email',
+          emailPlaceholder: 'support@example.com',
+          supportUrl: 'Support link',
+          supportUrlPlaceholder: 'https://... (group invite link, help desk page, etc.)',
         },
         footerLinks: {
           title: 'Custom Footer Links',

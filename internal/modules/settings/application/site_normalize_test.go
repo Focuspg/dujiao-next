@@ -723,6 +723,9 @@ func TestUpdateSiteSettingValidatesContactLinks(t *testing.T) {
 	}{
 		{map[string]interface{}{"whatsapp": "https://example.com/logo.png"}, "contact_whatsapp"},
 		{map[string]interface{}{"telegram": "javascript:alert(1)"}, "contact_telegram"},
+		{map[string]interface{}{"email": "not-an-email"}, "contact_email"},
+		{map[string]interface{}{"support_url": "http://example.com/help"}, "contact_support_url"},
+		{map[string]interface{}{"support_url": "javascript:alert(1)"}, "contact_support_url"},
 	}
 	for _, tc := range cases {
 		_, err := svc.Update(constants.SettingKeySiteConfig, map[string]interface{}{"contact": tc.contact})
@@ -739,6 +742,16 @@ func TestUpdateSiteSettingValidatesContactLinks(t *testing.T) {
 		"contact": map[string]interface{}{"telegram": "https://t.me/shop", "whatsapp": "https://wa.me/1234567890"},
 	}); err != nil {
 		t.Fatalf("valid contact links rejected: %v", err)
+	}
+	saved, err := svc.Update(constants.SettingKeySiteConfig, map[string]interface{}{
+		"contact": map[string]interface{}{"email": " mailto:support@example.com ", "support_url": "https://qm.qq.com/q/abc"},
+	})
+	if err != nil {
+		t.Fatalf("valid email and support url rejected: %v", err)
+	}
+	savedContact, _ := saved["contact"].(map[string]interface{})
+	if savedContact["email"] != "support@example.com" || savedContact["support_url"] != "https://qm.qq.com/q/abc" {
+		t.Fatalf("email and support url must be kept, got %v", savedContact)
 	}
 	if _, err := svc.Update(constants.SettingKeySiteConfig, map[string]interface{}{"contact": map[string]interface{}{}}); err != nil {
 		t.Fatalf("empty contact links rejected: %v", err)
