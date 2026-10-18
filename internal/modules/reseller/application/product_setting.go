@@ -248,7 +248,7 @@ func (s *ProductSettingService) getDetail(profile *resellerdomain.Profile, produ
 	if err != nil {
 		return nil, err
 	}
-	agentPrices, err := s.loadAgentPrices(profile.ID, []productdomain.Product{row.Product})
+	agentPrices, err := s.loadEffectiveAgentPrices(profile.ID, []productdomain.Product{row.Product})
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +267,7 @@ func (s *ProductSettingService) decorateRows(profile *resellerdomain.Profile, ro
 	for _, row := range rows {
 		products = append(products, row.Product)
 	}
-	agentPrices, err := s.loadAgentPrices(profile.ID, products)
+	agentPrices, err := s.loadEffectiveAgentPrices(profile.ID, products)
 	if err != nil {
 		return nil, err
 	}
@@ -286,18 +286,37 @@ func (s *ProductSettingService) decorateRows(profile *resellerdomain.Profile, ro
 	return out, nil
 }
 
+// loadAgentPrices 只读取某个作用域（某分销商，或 0 表示统一代理价）自己设置的代理价。
 func (s *ProductSettingService) loadAgentPrices(resellerID uint, products []productdomain.Product) (map[uint]decimal.Decimal, error) {
+	rows, err := s.store.ListAgentPrices(resellerID, productSKUIDs(products))
+	if err != nil {
+		return nil, err
+	}
+	return IndexAgentPrices(rows), nil
+}
+
+// loadEffectiveAgentPrices 读取分销商实际生效的代理价：单独设置优先，其次统一代理价。
+func (s *ProductSettingService) loadEffectiveAgentPrices(resellerID uint, products []productdomain.Product) (map[uint]decimal.Decimal, error) {
+	skuIDs := productSKUIDs(products)
+	defaults, err := s.store.ListAgentPrices(resellerdomain.DefaultAgentPriceResellerID, skuIDs)
+	if err != nil {
+		return nil, err
+	}
+	own, err := s.store.ListAgentPrices(resellerID, skuIDs)
+	if err != nil {
+		return nil, err
+	}
+	return IndexAgentPrices(append(defaults, own...)), nil
+}
+
+func productSKUIDs(products []productdomain.Product) []uint {
 	skuIDs := []uint{}
 	for _, product := range products {
 		for _, sku := range product.SKUs {
 			skuIDs = append(skuIDs, sku.ID)
 		}
 	}
-	rows, err := s.store.ListAgentPrices(resellerID, skuIDs)
-	if err != nil {
-		return nil, err
-	}
-	return IndexAgentPrices(rows), nil
+	return skuIDs
 }
 
 func resolveAgentPriceBySKU(product productdomain.Product, agentPrices map[uint]decimal.Decimal) map[uint]decimal.Decimal {
@@ -618,7 +637,9 @@ type AgentPriceListInput struct {
 type AgentPriceList struct {
 	Products    []productdomain.Product
 	AgentPrices map[uint]decimal.Decimal
-	Total       int64
+	// DefaultAgentPrices 统一代理价，供分销商列表对照；统一代理价列表本身为空。
+	DefaultAgentPrices map[uint]decimal.Decimal
+	Total              int64
 }
 
 // AgentPriceInput 单个 SKU 的代理价；PriceAmount 为 nil 表示清除，恢复按零售价拿货。
@@ -628,19 +649,37 @@ type AgentPriceInput struct {
 	PriceAmount *decimal.Decimal
 }
 
-// ListAdminAgentPrices 后台按商品分页查看某分销商的代理价。
+// ListAdminAgentPrices 后台按商品分页查看某分销商的代理价，并附带统一代理价供对照。
 func (s *ProductSettingService) ListAdminAgentPrices(resellerID uint, input AgentPriceListInput) (*AgentPriceList, error) {
 	profile, err := s.requireProfileByID(resellerID)
 	if err != nil {
 		return nil, err
 	}
-	rows, total, err := s.store.ListProductsWithSettings(resellercontract.ProductSettingListFilter{
-		Page:       input.Page,
-		PageSize:   input.PageSize,
-		ResellerID: profile.ID,
-		Keyword:    input.Keyword,
-		OnlyActive: true,
-	})
+	result, err := s.listAgentPriceProducts(resellercontract.ProductSettingListFilter{ResellerID: profile.ID}, profile.ID, input)
+	if err != nil {
+		return nil, err
+	}
+	result.DefaultAgentPrices, err = s.loadAgentPrices(resellerdomain.DefaultAgentPriceResellerID, result.Products)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// ListAdminDefaultAgentPrices 后台按商品分页查看统一代理价（对所有分销商生效）。
+func (s *ProductSettingService) ListAdminDefaultAgentPrices(input AgentPriceListInput) (*AgentPriceList, error) {
+	if s == nil || s.store == nil || s.productRepo == nil {
+		return nil, productcontract.ErrNotFound
+	}
+	return s.listAgentPriceProducts(resellercontract.ProductSettingListFilter{AllResellers: true}, resellerdomain.DefaultAgentPriceResellerID, input)
+}
+
+func (s *ProductSettingService) listAgentPriceProducts(filter resellercontract.ProductSettingListFilter, scopeID uint, input AgentPriceListInput) (*AgentPriceList, error) {
+	filter.Page = input.Page
+	filter.PageSize = input.PageSize
+	filter.Keyword = input.Keyword
+	filter.OnlyActive = true
+	rows, total, err := s.store.ListProductsWithSettings(filter)
 	if err != nil {
 		return nil, err
 	}
@@ -648,7 +687,7 @@ func (s *ProductSettingService) ListAdminAgentPrices(resellerID uint, input Agen
 	for _, row := range rows {
 		products = append(products, row.Product)
 	}
-	agentPrices, err := s.loadAgentPrices(profile.ID, products)
+	agentPrices, err := s.loadAgentPrices(scopeID, products)
 	if err != nil {
 		return nil, err
 	}
@@ -661,6 +700,18 @@ func (s *ProductSettingService) SaveAdminAgentPrices(resellerID uint, items []Ag
 	if err != nil {
 		return err
 	}
+	return s.saveAgentPrices(profile.ID, items)
+}
+
+// SaveAdminDefaultAgentPrices 后台批量设置或清除统一代理价；未单独设置代理价的分销商按统一代理价拿货。
+func (s *ProductSettingService) SaveAdminDefaultAgentPrices(items []AgentPriceInput) error {
+	if s == nil || s.store == nil || s.productRepo == nil {
+		return productcontract.ErrNotFound
+	}
+	return s.saveAgentPrices(resellerdomain.DefaultAgentPriceResellerID, items)
+}
+
+func (s *ProductSettingService) saveAgentPrices(scopeID uint, items []AgentPriceInput) error {
 	// 商品读取走全局连接，必须在开启事务前完成（SQLite 单连接）
 	products := map[uint]*productdomain.Product{}
 	saves := make([]resellerdomain.AgentPrice, 0, len(items))
@@ -671,6 +722,7 @@ func (s *ProductSettingService) SaveAdminAgentPrices(resellerID uint, items []Ag
 		}
 		product, ok := products[item.ProductID]
 		if !ok {
+			var err error
 			product, err = s.productRepo.GetAdminByID(strconv.FormatUint(uint64(item.ProductID), 10))
 			if err != nil {
 				return err
@@ -693,7 +745,7 @@ func (s *ProductSettingService) SaveAdminAgentPrices(resellerID uint, items []Ag
 			return resellercontract.ErrAgentPriceInvalid
 		}
 		saves = append(saves, resellerdomain.AgentPrice{
-			ResellerID:  profile.ID,
+			ResellerID:  scopeID,
 			ProductID:   product.ID,
 			SKUID:       sku.ID,
 			PriceAmount: money.FromDecimal(price),
@@ -701,7 +753,7 @@ func (s *ProductSettingService) SaveAdminAgentPrices(resellerID uint, items []Ag
 	}
 	return s.store.WithinProductSettingTransaction(func(store resellercontract.ProductSettingStore) error {
 		for _, skuID := range clears {
-			if err := store.DeleteAgentPrice(profile.ID, skuID); err != nil {
+			if err := store.DeleteAgentPrice(scopeID, skuID); err != nil {
 				return err
 			}
 		}

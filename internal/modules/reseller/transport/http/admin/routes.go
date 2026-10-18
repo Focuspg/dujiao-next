@@ -53,6 +53,8 @@ func RegisterAgentPriceRoutes(admin gin.IRoutes, handler *AdminAgentPriceHandler
 	}
 	admin.GET("/resellers/profiles/:id/agent-prices", handler.ListAgentPrices)
 	admin.PUT("/resellers/profiles/:id/agent-prices", handler.UpdateAgentPrices)
+	admin.GET("/resellers/agent-prices", handler.ListDefaultAgentPrices)
+	admin.PUT("/resellers/agent-prices", handler.UpdateDefaultAgentPrices)
 }
 
 func RegisterOperationsOverviewRoutes(admin gin.IRoutes, handler *AdminOperationsHandler) {

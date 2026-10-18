@@ -27,6 +27,7 @@ import {
   Gift,
   UserPlus,
   SlidersHorizontal,
+  Tags,
   ShieldCheck,
   ScrollText,
   ChevronDown,
@@ -396,6 +397,12 @@ const navGroups = computed<NavGroup[]>(() => {
           to: '/resellers/product-settings',
           icon: SlidersHorizontal,
           permission: 'GET:/admin/resellers/product-settings',
+        },
+        {
+          label: t('admin.navItems.resellerAgentPrices'),
+          to: '/resellers/agent-prices',
+          icon: Tags,
+          permission: 'GET:/admin/resellers/agent-prices',
         },
         {
           label: t('admin.navItems.resellerLedgerEntries'),

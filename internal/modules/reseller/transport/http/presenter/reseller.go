@@ -640,6 +640,8 @@ type AdminResellerAgentPriceSKUResp struct {
 	PriceAmount      string       `json:"price_amount"`
 	CostPriceAmount  string       `json:"cost_price_amount"`
 	AgentPriceAmount string       `json:"agent_price_amount"`
+	// DefaultAgentPriceAmount 统一代理价，分销商未单独设置时按它拿货；为空表示未设置。
+	DefaultAgentPriceAmount string `json:"default_agent_price_amount"`
 }
 
 // AdminResellerAgentPriceProductResp 后台代理价列表中的商品行。
@@ -651,7 +653,7 @@ type AdminResellerAgentPriceProductResp struct {
 }
 
 // NewAdminResellerAgentPriceRespList 构造后台代理价列表；agentPrices 为已设置的代理价（两位小数字符串）。
-func NewAdminResellerAgentPriceRespList(products []productdomain.Product, agentPrices map[uint]string) []AdminResellerAgentPriceProductResp {
+func NewAdminResellerAgentPriceRespList(products []productdomain.Product, agentPrices map[uint]string, defaultAgentPrices map[uint]string) []AdminResellerAgentPriceProductResp {
 	out := make([]AdminResellerAgentPriceProductResp, 0, len(products))
 	for _, product := range products {
 		row := AdminResellerAgentPriceProductResp{
@@ -662,12 +664,13 @@ func NewAdminResellerAgentPriceRespList(products []productdomain.Product, agentP
 		}
 		for _, sku := range product.SKUs {
 			row.SKUs = append(row.SKUs, AdminResellerAgentPriceSKUResp{
-				ID:               sku.ID,
-				SKUCode:          sku.SKUCode,
-				SpecValues:       sku.SpecValuesJSON,
-				PriceAmount:      sku.PriceAmount.String(),
-				CostPriceAmount:  sku.CostPriceAmount.String(),
-				AgentPriceAmount: agentPrices[sku.ID],
+				ID:                      sku.ID,
+				SKUCode:                 sku.SKUCode,
+				SpecValues:              sku.SpecValuesJSON,
+				PriceAmount:             sku.PriceAmount.String(),
+				CostPriceAmount:         sku.CostPriceAmount.String(),
+				AgentPriceAmount:        agentPrices[sku.ID],
+				DefaultAgentPriceAmount: defaultAgentPrices[sku.ID],
 			})
 		}
 		out = append(out, row)

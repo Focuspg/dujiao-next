@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDebounceFn } from '@vueuse/core'
 import { adminAPI } from '@/api/admin'
@@ -11,7 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { getLocalizedText } from '@/utils/format'
 import { notifyError, notifySuccess } from '@/utils/notify'
 
-const props = defineProps<{ resellerId: number }>()
+// 不传 resellerId 时编辑统一代理价（对所有分销商生效）
+const props = defineProps<{ resellerId?: number }>()
+
+const isDefaultScope = computed(() => !props.resellerId)
 
 const { t } = useI18n()
 
@@ -36,14 +39,16 @@ const resetDrafts = () => {
 }
 
 const fetchRows = async (page = 1) => {
-  if (!props.resellerId) return
   loading.value = true
   try {
-    const response = await adminAPI.getResellerAgentPrices(props.resellerId, {
+    const params = {
       page,
       page_size: pagination.value.page_size,
       keyword: keyword.value.trim() || undefined,
-    })
+    }
+    const response = props.resellerId
+      ? await adminAPI.getResellerAgentPrices(props.resellerId, params)
+      : await adminAPI.getDefaultResellerAgentPrices(params)
     products.value = (response.data.data || []) as AdminResellerAgentPriceProduct[]
     pagination.value = response.data.pagination || pagination.value
     resetDrafts()
@@ -82,6 +87,14 @@ const draftInvalid = (sku: AdminResellerAgentPriceSKU) => {
   return !Number.isFinite(value) || value <= 0 || value > Number(sku.price_amount)
 }
 
+const hasDefaultPrice = (sku: AdminResellerAgentPriceSKU) => Number(sku.default_agent_price_amount) > 0
+
+const placeholderFor = (sku: AdminResellerAgentPriceSKU) => {
+  if (isDefaultScope.value) return t('admin.resellerProfileDetail.agentPrices.defaultPlaceholder')
+  if (hasDefaultPrice(sku)) return t('admin.resellerProfileDetail.agentPrices.placeholderDefault', { price: sku.default_agent_price_amount })
+  return t('admin.resellerProfileDetail.agentPrices.placeholder')
+}
+
 const save = async () => {
   const items: Array<{ product_id: number; sku_id: number; agent_price_amount: string }> = []
   for (const product of products.value) {
@@ -101,7 +114,11 @@ const save = async () => {
   }
   saving.value = true
   try {
-    await adminAPI.updateResellerAgentPrices(props.resellerId, { items })
+    if (props.resellerId) {
+      await adminAPI.updateResellerAgentPrices(props.resellerId, { items })
+    } else {
+      await adminAPI.updateDefaultResellerAgentPrices({ items })
+    }
     notifySuccess(t('admin.resellerProfileDetail.agentPrices.saveSuccess'))
     await fetchRows(pagination.value.page)
   } catch (err: any) {
@@ -118,8 +135,12 @@ onMounted(() => fetchRows())
   <div class="rounded-xl border border-border bg-card">
     <div class="flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <div class="text-sm font-medium">{{ t('admin.resellerProfileDetail.agentPrices.title') }}</div>
-        <p class="mt-1 text-xs text-muted-foreground">{{ t('admin.resellerProfileDetail.agentPrices.hint') }}</p>
+        <div class="text-sm font-medium">
+          {{ isDefaultScope ? t('admin.resellerProfileDetail.agentPrices.defaultTitle') : t('admin.resellerProfileDetail.agentPrices.title') }}
+        </div>
+        <p class="mt-1 text-xs text-muted-foreground">
+          {{ isDefaultScope ? t('admin.resellerProfileDetail.agentPrices.defaultHint') : t('admin.resellerProfileDetail.agentPrices.hint') }}
+        </p>
       </div>
       <div class="flex gap-2">
         <Input v-model="keyword" class="h-9 w-full sm:w-56" :placeholder="t('admin.resellerProfileDetail.agentPrices.search')" @update:modelValue="debouncedSearch" />
@@ -134,7 +155,10 @@ onMounted(() => fetchRows())
             <TableHead class="px-4 py-3">{{ t('admin.resellerProfileDetail.agentPrices.sku') }}</TableHead>
             <TableHead class="px-4 py-3">{{ t('admin.resellerProfileDetail.agentPrices.retailPrice') }}</TableHead>
             <TableHead class="px-4 py-3">{{ t('admin.resellerProfileDetail.agentPrices.costPrice') }}</TableHead>
-            <TableHead class="px-4 py-3">{{ t('admin.resellerProfileDetail.agentPrices.agentPrice') }}</TableHead>
+            <TableHead v-if="!isDefaultScope" class="px-4 py-3">{{ t('admin.resellerProfileDetail.agentPrices.defaultAgentPrice') }}</TableHead>
+            <TableHead class="px-4 py-3">
+              {{ isDefaultScope ? t('admin.resellerProfileDetail.agentPrices.defaultAgentPrice') : t('admin.resellerProfileDetail.agentPrices.agentPrice') }}
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -146,19 +170,22 @@ onMounted(() => fetchRows())
               <TableCell class="px-4 py-3 text-xs">{{ skuLabel(sku) }}</TableCell>
               <TableCell class="px-4 py-3 font-mono text-xs">{{ sku.price_amount }}</TableCell>
               <TableCell class="px-4 py-3 font-mono text-xs text-muted-foreground">{{ Number(sku.cost_price_amount) > 0 ? sku.cost_price_amount : '-' }}</TableCell>
+              <TableCell v-if="!isDefaultScope" class="px-4 py-3 font-mono text-xs text-muted-foreground">
+                {{ hasDefaultPrice(sku) ? sku.default_agent_price_amount : '-' }}
+              </TableCell>
               <TableCell class="px-4 py-3">
                 <Input
                   v-model="drafts[sku.id]"
                   inputmode="decimal"
                   class="h-9 w-32 font-mono"
                   :class="draftInvalid(sku) ? 'border-destructive' : ''"
-                  :placeholder="t('admin.resellerProfileDetail.agentPrices.placeholder')"
+                  :placeholder="placeholderFor(sku)"
                 />
               </TableCell>
             </TableRow>
           </template>
           <TableRow v-if="!loading && products.length === 0">
-            <TableCell colspan="5" class="px-4 py-8 text-center text-muted-foreground">{{ t('admin.resellerProfileDetail.agentPrices.empty') }}</TableCell>
+            <TableCell :colspan="isDefaultScope ? 5 : 6" class="px-4 py-8 text-center text-muted-foreground">{{ t('admin.resellerProfileDetail.agentPrices.empty') }}</TableCell>
           </TableRow>
         </TableBody>
       </Table>

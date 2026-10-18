@@ -97,12 +97,13 @@ func uniqueUintSlice(values []uint) []uint {
 	return result
 }
 
-// ListAgentPrices 获取分销商的 SKU 拿货价；skuIDs 为空时返回该分销商的全部设置。
+// ListAgentPrices 获取分销商的 SKU 拿货价；resellerID 为 0 时返回统一代理价；skuIDs 为 nil 时返回该作用域的全部设置。
 func (r *Store) ListAgentPrices(resellerID uint, skuIDs []uint) ([]resellerdomain.AgentPrice, error) {
-	if resellerID == 0 {
-		return []resellerdomain.AgentPrice{}, nil
-	}
-	query := r.db.Where("reseller_id = ?", resellerID)
+	return r.listAgentPrices([]uint{resellerID}, skuIDs)
+}
+
+func (r *Store) listAgentPrices(resellerIDs []uint, skuIDs []uint) ([]resellerdomain.AgentPrice, error) {
+	query := r.db.Where("reseller_id IN ?", resellerIDs)
 	if skuIDs != nil {
 		skuIDs = uniqueUintSlice(skuIDs)
 		if len(skuIDs) == 0 {
@@ -117,17 +118,21 @@ func (r *Store) ListAgentPrices(resellerID uint, skuIDs []uint) ([]resellerdomai
 	return rows, nil
 }
 
-// ListAgentPricesForPricing 下单与前台展示定价时批量读取拿货价。
+// ListAgentPricesForPricing 下单与前台展示定价时批量读取拿货价：同时返回统一代理价和该分销商的单独代理价，
+// 由 IndexAgentPrices 按“单独价优先”合并。
 func (r *Store) ListAgentPricesForPricing(resellerID uint, skuIDs []uint) ([]resellerdomain.AgentPrice, error) {
+	if resellerID == 0 {
+		return []resellerdomain.AgentPrice{}, nil
+	}
 	if skuIDs == nil {
 		skuIDs = []uint{}
 	}
-	return r.ListAgentPrices(resellerID, skuIDs)
+	return r.listAgentPrices([]uint{resellerdomain.DefaultAgentPriceResellerID, resellerID}, skuIDs)
 }
 
-// SaveAgentPrice 新增或更新某分销商某 SKU 的拿货价。
+// SaveAgentPrice 新增或更新某分销商某 SKU 的拿货价；ResellerID 为 0 时保存统一代理价。
 func (r *Store) SaveAgentPrice(price resellerdomain.AgentPrice) error {
-	if price.ResellerID == 0 || price.ProductID == 0 || price.SKUID == 0 {
+	if price.ProductID == 0 || price.SKUID == 0 {
 		return errors.New("reseller agent price scope is invalid")
 	}
 	var existing resellerdomain.AgentPrice
@@ -147,9 +152,9 @@ func (r *Store) SaveAgentPrice(price resellerdomain.AgentPrice) error {
 		}).Error
 }
 
-// DeleteAgentPrice 清除某分销商某 SKU 的拿货价，恢复按零售价拿货。
+// DeleteAgentPrice 清除某分销商某 SKU 的拿货价；resellerID 为 0 时清除统一代理价。
 func (r *Store) DeleteAgentPrice(resellerID, skuID uint) error {
-	if resellerID == 0 || skuID == 0 {
+	if skuID == 0 {
 		return nil
 	}
 	return r.db.Where("reseller_id = ? AND sku_id = ?", resellerID, skuID).Delete(&resellerdomain.AgentPrice{}).Error

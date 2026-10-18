@@ -341,3 +341,84 @@ func TestResellerProductSettingServiceAdminAgentPrices(t *testing.T) {
 		t.Fatalf("agent price should be cleared, count=%d err=%v", count, err)
 	}
 }
+
+func TestResellerProductSettingServiceDefaultAgentPrices(t *testing.T) {
+	db := openResellerProductSettingServiceTestDB(t)
+	user, profile, product, skus := seedResellerProductSettingServiceData(t, db)
+	svc := newResellerProductSettingServiceForTest(db)
+
+	defaultA := decimal.RequireFromString("90")
+	defaultB := decimal.RequireFromString("150")
+	if err := svc.SaveAdminDefaultAgentPrices([]resellermodule.AgentPriceInput{
+		{ProductID: product.ID, SKUID: skus[0].ID, PriceAmount: &defaultA},
+		{ProductID: product.ID, SKUID: skus[1].ID, PriceAmount: &defaultB},
+	}); err != nil {
+		t.Fatalf("save default agent prices failed: %v", err)
+	}
+	tooHigh := decimal.RequireFromString("200.01")
+	if err := svc.SaveAdminDefaultAgentPrices([]resellermodule.AgentPriceInput{
+		{ProductID: product.ID, SKUID: skus[1].ID, PriceAmount: &tooHigh},
+	}); !errors.Is(err, resellercontract.ErrAgentPriceInvalid) {
+		t.Fatalf("default agent price above retail want ErrAgentPriceInvalid got %v", err)
+	}
+	zero := decimal.Zero
+	if err := svc.SaveAdminDefaultAgentPrices([]resellermodule.AgentPriceInput{
+		{ProductID: product.ID, SKUID: skus[1].ID, PriceAmount: &zero},
+	}); !errors.Is(err, resellercontract.ErrAgentPriceInvalid) {
+		t.Fatalf("zero default agent price want ErrAgentPriceInvalid got %v", err)
+	}
+
+	defaults, err := svc.ListAdminDefaultAgentPrices(resellermodule.AgentPriceListInput{Page: 1, PageSize: 20})
+	if err != nil {
+		t.Fatalf("list default agent prices failed: %v", err)
+	}
+	if defaults.Total != 1 || defaults.AgentPrices[skus[0].ID].StringFixed(2) != "90.00" || defaults.AgentPrices[skus[1].ID].StringFixed(2) != "150.00" {
+		t.Fatalf("unexpected default agent price list: total=%d prices=%v", defaults.Total, defaults.AgentPrices)
+	}
+
+	// 分销商单独设置的代理价优先于统一代理价
+	own := decimal.RequireFromString("85.50")
+	if err := svc.SaveAdminAgentPrices(profile.ID, []resellermodule.AgentPriceInput{
+		{ProductID: product.ID, SKUID: skus[0].ID, PriceAmount: &own},
+	}); err != nil {
+		t.Fatalf("save reseller agent price failed: %v", err)
+	}
+	list, err := svc.ListAdminAgentPrices(profile.ID, resellermodule.AgentPriceListInput{Page: 1, PageSize: 20})
+	if err != nil {
+		t.Fatalf("list reseller agent prices failed: %v", err)
+	}
+	if list.AgentPrices[skus[0].ID].StringFixed(2) != "85.50" || list.DefaultAgentPrices[skus[0].ID].StringFixed(2) != "90.00" {
+		t.Fatalf("reseller list must keep own and default prices apart: own=%v default=%v", list.AgentPrices, list.DefaultAgentPrices)
+	}
+	if _, ok := list.AgentPrices[skus[1].ID]; ok {
+		t.Fatalf("default agent price must not appear as the reseller's own price")
+	}
+
+	detail, err := svc.GetUserProductSetting(user.ID, product.ID)
+	if err != nil {
+		t.Fatalf("get user product setting failed: %v", err)
+	}
+	if got := detail.AgentPriceBySKUID[skus[0].ID].StringFixed(2); got != "85.50" {
+		t.Fatalf("sku A effective agent price want own 85.50 got %s", got)
+	}
+	if got := detail.AgentPriceBySKUID[skus[1].ID].StringFixed(2); got != "150.00" {
+		t.Fatalf("sku B effective agent price want default 150.00 got %s", got)
+	}
+
+	// 清除统一代理价后回落到零售价，不影响分销商单独设置的价格
+	if err := svc.SaveAdminDefaultAgentPrices([]resellermodule.AgentPriceInput{
+		{ProductID: product.ID, SKUID: skus[1].ID},
+	}); err != nil {
+		t.Fatalf("clear default agent price failed: %v", err)
+	}
+	detail, err = svc.GetUserProductSetting(user.ID, product.ID)
+	if err != nil {
+		t.Fatalf("get user product setting failed: %v", err)
+	}
+	if got := detail.AgentPriceBySKUID[skus[1].ID].StringFixed(2); got != "200.00" {
+		t.Fatalf("sku B agent price want retail 200.00 after clearing default, got %s", got)
+	}
+	if got := detail.AgentPriceBySKUID[skus[0].ID].StringFixed(2); got != "85.50" {
+		t.Fatalf("sku A own agent price must survive clearing defaults, got %s", got)
+	}
+}
