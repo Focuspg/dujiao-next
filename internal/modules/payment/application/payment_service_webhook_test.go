@@ -124,3 +124,40 @@ func TestEpaySyncCallbackRejectsProviderRefMismatch(t *testing.T) {
 		t.Fatalf("status = %s", updated.Status)
 	}
 }
+
+// 跳转模式下单时拿不到平台 trade_no，ProviderRef 兜底存的是商户单号；
+// 回调带来的平台 trade_no 不算冲突，应正常入账并回写为平台单号。
+func TestEpaySyncCallbackAcceptsRedirectModeFallbackProviderRef(t *testing.T) {
+	svc, db := setupPaymentServiceWalletTest(t)
+	channel, order := createFeePolicyOrderFixture(t, db, "Epay Redirect", "DJ-EPAY-REDIRECT")
+	if err := db.Model(channel).Updates(map[string]interface{}{
+		"provider_type": constants.PaymentProviderEpay, "channel_type": constants.PaymentChannelTypeAlipay,
+	}).Error; err != nil {
+		t.Fatalf("switch channel to epay: %v", err)
+	}
+	channel.ProviderType = constants.PaymentProviderEpay
+	channel.ChannelType = constants.PaymentChannelTypeAlipay
+	now := time.Now()
+	payment := &paymentdomain.Payment{
+		OrderID: order.ID, ChannelID: channel.ID, ProviderType: channel.ProviderType, ChannelType: channel.ChannelType,
+		InteractionMode: constants.PaymentInteractionRedirect, Amount: money.FromDecimal(decimal.NewFromInt(100)),
+		Currency: "CNY", Status: constants.PaymentStatusPending, GatewayOrderNo: "DJP-EPAY-REDIRECT",
+		ProviderRef: "DJP-EPAY-REDIRECT", CreatedAt: now, UpdatedAt: now,
+	}
+	if err := db.Create(payment).Error; err != nil {
+		t.Fatalf("create payment: %v", err)
+	}
+	callback := paymentcontract.GatewayCallbackResult{
+		OrderNo: "DJP-EPAY-REDIRECT", ProviderRef: "2026101820541355285", Status: constants.PaymentStatusSuccess,
+		Amount: payment.Amount, Currency: "CNY",
+	}
+	registerTestGateway(t, svc, channel.ProviderType, channel.ChannelType, fixedCallbackVerifier{result: callback})
+
+	updated, err := svc.HandleSyncCallback(channel, nil, nil)
+	if err != nil {
+		t.Fatalf("redirect-mode callback rejected: %v", err)
+	}
+	if updated.Status != constants.PaymentStatusSuccess || updated.ProviderRef != "2026101820541355285" {
+		t.Fatalf("expected success with platform trade_no, got status=%s ref=%s", updated.Status, updated.ProviderRef)
+	}
+}
