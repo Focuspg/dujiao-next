@@ -3,10 +3,13 @@ import assert from 'node:assert/strict'
 import {
   buildResellerProductSettingPayload,
   getResellerPricingModeLabelKey,
+  isProductAgentPriceRetail,
   isResellerProductSettingDetail,
   normalizeResellerProductSettingsPagination,
   normalizeResellerProductSettingForm,
   summarizeEffectivePrice,
+  summarizeProductAgentPrice,
+  summarizeProductEstimatedProfit,
 } from '../src/utils/resellerProductSettings.ts'
 
 test('pricing mode label keys are stable', () => {
@@ -65,4 +68,28 @@ test('product settings pagination normalizes API pagination payloads', () => {
     normalizeResellerProductSettingsPagination(null, { page: 4, page_size: 20, total: 80, total_page: 4 }),
     { page: 4, page_size: 20, total: 80, total_page: 4 },
   )
+})
+
+test('product agent price and estimated profit summarize listed skus', () => {
+  const detail = {
+    skus: [
+      { id: 1, is_active: true, base_price_amount: '135.00', agent_price_amount: '115.00', effective_price_amount: '135.00' },
+      { id: 2, is_active: true, base_price_amount: '666.00', agent_price_amount: '600.00', effective_price_amount: '700.00' },
+      { id: 3, is_active: true, base_price_amount: '50.00', agent_price_amount: '10.00', effective_price_amount: '50.00', setting: { is_listed: false } },
+    ],
+  }
+  assert.equal(summarizeProductAgentPrice(detail), '115.00 - 600.00')
+  assert.equal(summarizeProductEstimatedProfit(detail), '20.00 - 100.00')
+  assert.equal(isProductAgentPriceRetail(detail), false)
+})
+
+test('product agent price falls back to retail when no agent price is set', () => {
+  const detail = {
+    skus: [{ id: 1, is_active: true, base_price_amount: '135', agent_price_amount: '135', effective_price_amount: '135' }],
+  }
+  assert.equal(summarizeProductAgentPrice(detail), '135')
+  assert.equal(isProductAgentPriceRetail(detail), true)
+  assert.equal(summarizeProductEstimatedProfit(detail), '0.00')
+  assert.equal(summarizeProductAgentPrice({ skus: [] }), '-')
+  assert.equal(summarizeProductEstimatedProfit({ skus: [] }), '-')
 })

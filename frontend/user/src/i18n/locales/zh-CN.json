@@ -765,6 +765,8 @@
         "empty": "暂无可配置商品",
         "basePrice": "主站基准价",
         "agentPrice": "拿货价",
+        "agentPriceRetail": "按零售价",
+        "estimatedProfit": "预计利润",
         "edit": "编辑售价",
         "editorTitle": "售价规则",
         "productLevelRule": "商品级规则",

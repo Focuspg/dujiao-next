@@ -812,6 +812,8 @@
         "empty": "No configurable products",
         "basePrice": "Base price",
         "agentPrice": "Your cost",
+        "agentPriceRetail": "At retail price",
+        "estimatedProfit": "Estimated profit",
         "edit": "Edit pricing",
         "editorTitle": "Pricing rules",
         "productLevelRule": "Product-level rule",
