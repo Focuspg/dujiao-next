@@ -34,6 +34,7 @@ const homeAnnouncementTabRef = ref<InstanceType<typeof SettingsHomeAnnouncementT
 const upstreamSyncTabRef = ref<InstanceType<typeof SettingsUpstreamSyncTab>>()
 const siteIconPickerRef = ref<InstanceType<typeof MediaPicker> | null>(null)
 const siteLogoPickerRef = ref<InstanceType<typeof MediaPicker> | null>(null)
+const siteShareImagePickerRef = ref<InstanceType<typeof MediaPicker> | null>(null)
 const supportedLanguages = ['zh-CN', 'zh-TW', 'en-US'] as const
 type SupportedLanguage = (typeof supportedLanguages)[number]
 type SiteScriptPosition = 'head' | 'body_end'
@@ -186,6 +187,8 @@ const form = reactive({
     // site_icon 是浏览器 favicon；site_logo 是前台页面 Logo，二者必须独立保存和清除。
     site_icon: '',
     site_logo: '',
+    // site_share_image 是链接分享卡片（og:image）使用的图片，未设置时回落到 Logo、浏览器图标。
+    site_share_image: '',
     site_description: createLocalizedField(),
   },
   currency: 'CNY',
@@ -395,6 +398,7 @@ const fetchSettings = async () => {
         form.brand.site_url = String(brand.site_url || '')
         form.brand.site_icon = String(brand.site_icon || '')
         form.brand.site_logo = String(brand.site_logo || '')
+        form.brand.site_share_image = String(brand.site_share_image || '')
         form.brand.site_description = normalizeLocalizedField(brand.site_description)
       }
       {
@@ -644,6 +648,14 @@ const clearSiteIcon = () => {
 
 const clearSiteLogo = () => {
   form.brand.site_logo = ''
+}
+
+const openSiteShareImagePicker = () => {
+  siteShareImagePickerRef.value?.openPicker()
+}
+
+const clearSiteShareImage = () => {
+  form.brand.site_share_image = ''
 }
 
 const saveOrderSettings = async () => {
@@ -999,6 +1011,28 @@ onMounted(() => {
             </div>
             <p class="text-xs text-muted-foreground">{{ t('admin.settings.brand.siteLogoTip') }}</p>
             <MediaPicker ref="siteLogoPickerRef" v-model="form.brand.site_logo" scene="common" dialog-only />
+          </div>
+          <div class="space-y-2">
+            <label class="text-xs font-medium text-muted-foreground">{{ t('admin.settings.brand.siteShareImage') }}</label>
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/20 transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                :title="t('admin.settings.brand.siteShareImageTip')"
+                @click="openSiteShareImagePicker"
+              >
+                <img v-if="form.brand.site_share_image" :src="getImageUrl(form.brand.site_share_image)" class="h-full w-full object-cover" alt="" />
+                <span v-else class="text-[10px] font-semibold text-muted-foreground">OG</span>
+              </button>
+              <Button type="button" variant="outline" size="sm" @click="openSiteShareImagePicker">
+                {{ t('admin.settings.brand.siteShareImageSelect') }}
+              </Button>
+              <Button v-if="form.brand.site_share_image" type="button" variant="ghost" size="sm" @click="clearSiteShareImage">
+                {{ t('admin.common.delete') }}
+              </Button>
+            </div>
+            <p class="text-xs text-muted-foreground">{{ t('admin.settings.brand.siteShareImageTip') }}</p>
+            <MediaPicker ref="siteShareImagePickerRef" v-model="form.brand.site_share_image" scene="common" dialog-only />
           </div>
           <div class="space-y-2 md:col-span-2">
             <div class="flex items-center justify-between">
