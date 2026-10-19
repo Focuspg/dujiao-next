@@ -14,6 +14,8 @@ type ResellerProductSettingSKULike = {
   id?: number
   is_active?: boolean
   effective_price_amount?: string
+  base_price_amount?: string
+  agent_price_amount?: string
   setting?: ResellerProductSettingDataLike | null
 }
 
@@ -185,6 +187,59 @@ export const summarizeProductEffectivePrice = (
   }
   const productPrice = normalizeMoneyText(detail?.product_setting?.effective_price_amount)
   return productPrice || fallback
+}
+
+const formatMoneyRange = (values: string[]) => {
+  const sorted = sortMoneyValues(uniqueMoneyValues(values))
+  if (sorted.length === 0) return ''
+  return sorted.length === 1 ? sorted[0] : `${sorted[0]} - ${sorted[sorted.length - 1]}`
+}
+
+const toCents = (value?: string) => {
+  const text = normalizeMoneyText(value)
+  if (!text) return null
+  const parsed = Number(text)
+  return Number.isFinite(parsed) ? Math.round(parsed * 100) : null
+}
+
+// 拿货价按已展示的规格统计；一个都没展示时退回全部启用规格，方便上架前先看成本。
+const agentPriceSkus = (detail?: ResellerProductSettingDetailLike | null) => {
+  const skus = detail?.skus || []
+  const listed = skus.filter(isSkuListed)
+  return listed.length > 0 ? listed : skus.filter((sku) => sku.is_active !== false)
+}
+
+const skuAgentPrice = (sku: ResellerProductSettingSKULike) =>
+  normalizeMoneyText(sku.agent_price_amount) || normalizeMoneyText(sku.base_price_amount)
+
+export const summarizeProductAgentPrice = (
+  detail?: ResellerProductSettingDetailLike | null,
+  fallback = '-',
+) => formatMoneyRange(agentPriceSkus(detail).map(skuAgentPrice)) || fallback
+
+// isProductAgentPriceRetail 判断拿货价是否全部等于主站零售价（即后台未给该分销商设置任何代理价）。
+export const isProductAgentPriceRetail = (detail?: ResellerProductSettingDetailLike | null) => {
+  const skus = agentPriceSkus(detail)
+  if (skus.length === 0) return false
+  return skus.every((sku) => {
+    const agent = toCents(skuAgentPrice(sku))
+    const base = toCents(sku.base_price_amount)
+    return agent !== null && agent === base
+  })
+}
+
+export const summarizeProductEstimatedProfit = (
+  detail?: ResellerProductSettingDetailLike | null,
+  fallback = '-',
+) => {
+  const profits: string[] = []
+  ;(detail?.skus || []).filter(isSkuListed).forEach((sku) => {
+    const effective = toCents(sku.effective_price_amount || sku.setting?.effective_price_amount)
+    const agent = toCents(skuAgentPrice(sku))
+    if (effective === null || agent === null) return
+    profits.push(((effective - agent) / 100).toFixed(2))
+  })
+  return formatMoneyRange(profits) || fallback
 }
 
 export const getResellerRuleSourceLabelKey = (source?: string) => {

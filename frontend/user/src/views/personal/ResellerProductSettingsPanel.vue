@@ -65,14 +65,25 @@
             {{ t('personalCenter.reseller.productSettings.edit') }}
           </Button>
         </div>
-        <div class="mt-4 grid gap-3 sm:grid-cols-3">
+        <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <div class="rounded-lg border bg-muted/30 px-3 py-2">
             <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{{ t('personalCenter.reseller.productSettings.basePrice') }}</div>
             <div class="mt-1 font-mono text-sm font-bold text-foreground">{{ row.product.price_amount }}</div>
           </div>
+          <div class="rounded-lg border bg-muted/30 px-3 py-2">
+            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{{ t('personalCenter.reseller.productSettings.agentPrice') }}</div>
+            <div class="mt-1 flex flex-wrap items-center gap-2">
+              <span class="font-mono text-sm font-bold text-foreground">{{ summarizeProductAgentPrice(row) }}</span>
+              <Badge v-if="isProductAgentPriceRetail(row)" variant="neutral" size="xs">{{ t('personalCenter.reseller.productSettings.agentPriceRetail') }}</Badge>
+            </div>
+          </div>
           <div class="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
             <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">{{ t('personalCenter.reseller.productSettings.effectivePrice') }}</div>
             <div class="mt-1 font-mono text-sm font-bold text-primary">{{ summarizeProductEffectivePrice(row) }}</div>
+          </div>
+          <div class="rounded-lg border bg-muted/30 px-3 py-2">
+            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{{ t('personalCenter.reseller.productSettings.estimatedProfit') }}</div>
+            <div class="mt-1 font-mono text-sm font-bold text-foreground">{{ summarizeProductEstimatedProfit(row) }}</div>
           </div>
           <div class="rounded-lg border bg-muted/30 px-3 py-2">
             <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{{ t('personalCenter.reseller.productSettings.listedSkuCount') }}</div>
@@ -171,11 +182,14 @@ import {
   buildResellerProductSettingPayload,
   countActiveSkus,
   countListedSkus,
+  isProductAgentPriceRetail,
   isResellerProductSettingDetail,
   normalizeResellerProductSettingsPagination,
   normalizeResellerProductSettingForm,
   summarizeEffectivePrice,
+  summarizeProductAgentPrice,
   summarizeProductEffectivePrice,
+  summarizeProductEstimatedProfit,
 } from '../../utils/resellerProductSettings'
 import { formatSkuSpecValues } from '../../utils/sku'
 import ResellerProductRuleEditor from './ResellerProductRuleEditor.vue'
