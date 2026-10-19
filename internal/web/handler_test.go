@@ -221,7 +221,7 @@ func newUserFS() fstest.MapFS {
 func TestRegisterUser_ServesIndex(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	if err := RegisterUser(r, newUserFS()); err != nil {
+	if err := RegisterUser(r, newUserFS(), nil); err != nil {
 		t.Fatalf("RegisterUser: %v", err)
 	}
 
@@ -241,7 +241,7 @@ func TestRegisterUser_ServesIndex(t *testing.T) {
 func TestRegisterUser_ServesAsset(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	if err := RegisterUser(r, newUserFS()); err != nil {
+	if err := RegisterUser(r, newUserFS(), nil); err != nil {
 		t.Fatalf("RegisterUser: %v", err)
 	}
 
@@ -261,7 +261,7 @@ func TestRegisterUser_ServesAsset(t *testing.T) {
 func TestRegisterUser_HistoryFallback(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	if err := RegisterUser(r, newUserFS()); err != nil {
+	if err := RegisterUser(r, newUserFS(), nil); err != nil {
 		t.Fatalf("RegisterUser: %v", err)
 	}
 
@@ -283,7 +283,7 @@ func TestRegisterUser_HistoryFallback(t *testing.T) {
 func TestRegisterUser_ReservedPathsStay404(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	if err := RegisterUser(r, newUserFS()); err != nil {
+	if err := RegisterUser(r, newUserFS(), nil); err != nil {
 		t.Fatalf("RegisterUser: %v", err)
 	}
 
@@ -313,7 +313,7 @@ func TestRegisterUser_ReservedPathsStay404(t *testing.T) {
 func TestRegisterUser_NonReservedLookalikeStillServesSPA(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	if err := RegisterUser(r, newUserFS()); err != nil {
+	if err := RegisterUser(r, newUserFS(), nil); err != nil {
 		t.Fatalf("RegisterUser: %v", err)
 	}
 
@@ -339,7 +339,7 @@ func TestRegisterUser_DoesNotShadowExistingRoutes(t *testing.T) {
 	r.GET("/api/v1/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
 	})
-	if err := RegisterUser(r, newUserFS()); err != nil {
+	if err := RegisterUser(r, newUserFS(), nil); err != nil {
 		t.Fatalf("RegisterUser: %v", err)
 	}
 
@@ -378,7 +378,7 @@ func TestCacheControlHeaders(t *testing.T) {
 	if err := RegisterAdmin(r, "/admin", newAdminFS("<html>admin-spa</html>")); err != nil {
 		t.Fatalf("RegisterAdmin: %v", err)
 	}
-	if err := RegisterUser(r, newUserFS()); err != nil {
+	if err := RegisterUser(r, newUserFS(), nil); err != nil {
 		t.Fatalf("RegisterUser: %v", err)
 	}
 

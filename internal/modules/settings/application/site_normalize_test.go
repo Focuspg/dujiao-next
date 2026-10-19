@@ -105,10 +105,11 @@ func TestUpdateSiteSettingNormalized(t *testing.T) {
 
 	result, err := svc.Update(constants.SettingKeySiteConfig, map[string]interface{}{
 		"brand": map[string]interface{}{
-			"site_name": 123,
-			"site_url":  "  https://example.com/path/  ",
-			"site_icon": "  /uploads/site/icon.png  ",
-			"site_logo": "  /uploads/site/logo.png  ",
+			"site_name":        123,
+			"site_url":         "  https://example.com/path/  ",
+			"site_icon":        "  /uploads/site/icon.png  ",
+			"site_logo":        "  /uploads/site/logo.png  ",
+			"site_share_image": "  /uploads/site/share.png  ",
 		},
 		"contact": map[string]interface{}{
 			"telegram": "  https://t.me/demo  ",
@@ -210,6 +211,9 @@ func TestUpdateSiteSettingNormalized(t *testing.T) {
 	}
 	if brand["site_logo"] != "/uploads/site/logo.png" {
 		t.Fatalf("unexpected brand.site_logo: %v", brand["site_logo"])
+	}
+	if brand["site_share_image"] != "/uploads/site/share.png" {
+		t.Fatalf("unexpected brand.site_share_image: %v", brand["site_share_image"])
 	}
 
 	config, err := svc.GetConfig(map[string]interface{}{})
@@ -389,6 +393,9 @@ func TestUpdateSiteSettingNormalizedDefaultAbout(t *testing.T) {
 		t.Fatalf("unexpected default brand payload: %+v", brand)
 	}
 	if brand["site_logo"] != "" {
+		t.Fatalf("unexpected default brand payload: %+v", brand)
+	}
+	if brand["site_share_image"] != "" {
 		t.Fatalf("unexpected default brand payload: %+v", brand)
 	}
 	scripts, ok := result["scripts"].([]interface{})

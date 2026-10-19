@@ -178,6 +178,7 @@ func normalizeSiteBrand(raw interface{}) map[string]interface{} {
 		"site_url":         "",
 		"site_icon":        "",
 		"site_logo":        "",
+		"site_share_image": "",
 		"site_description": normalizeSiteLocalizedField(nil),
 	}
 	brandMap, ok := raw.(map[string]interface{})
@@ -189,6 +190,8 @@ func normalizeSiteBrand(raw interface{}) map[string]interface{} {
 	result["site_icon"] = normalizeSettingText(brandMap["site_icon"])
 	// 未配置 Logo 时保留空字符串，让前台继续使用各主题原有的 fallback 行为。
 	result["site_logo"] = normalizeSettingText(brandMap["site_logo"])
+	// 链接分享卡片（og:image）专用图片，未配置时服务端回落到 site_logo、site_icon。
+	result["site_share_image"] = normalizeSettingText(brandMap["site_share_image"])
 	result["site_description"] = normalizeSiteLocalizedField(brandMap["site_description"])
 	return result
 }
