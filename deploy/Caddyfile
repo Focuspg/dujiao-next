@@ -8,6 +8,19 @@
 (shop) {
 	encode zstd gzip
 
+	# 安全响应头。不加整站 CSP（前台有自定义脚本、富文本和第三方支付跳转），
+	# 只用 frame-ancestors 限制被嵌入：允许 Telegram Web 打开 Mini App，其余站点不能用 iframe 嵌入。
+	# HSTS 暂不带 includeSubDomains / preload，分站证书是按需签发的。
+	# "?" 表示后端已经设置过就不覆盖（/uploads 自带更严格的 CSP，Google 登录回调自带 Referrer-Policy）。
+	# 每个 "?" 单独写一行：写在同一个 header 块里会变成"全部都没设置才一起加"。
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	header ?X-Content-Type-Options "nosniff"
+	header ?Content-Security-Policy "frame-ancestors 'self' https://web.telegram.org"
+	header ?Referrer-Policy "strict-origin-when-cross-origin"
+
 	@blocked path /.env* /.git/* /config.yml* /health/tls-ask
 	respond @blocked 404
 
