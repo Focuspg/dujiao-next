@@ -70,10 +70,10 @@
             <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{{ t('personalCenter.reseller.productSettings.basePrice') }}</div>
             <div class="mt-1 font-mono text-sm font-bold text-foreground">{{ row.product.price_amount }}</div>
           </div>
-          <div class="rounded-lg border bg-muted/30 px-3 py-2">
-            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{{ t('personalCenter.reseller.productSettings.agentPrice') }}</div>
+          <div class="rounded-lg border border-success/30 bg-success/10 px-3 py-2">
+            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-success">{{ t('personalCenter.reseller.productSettings.agentPrice') }}</div>
             <div class="mt-1 flex flex-wrap items-center gap-2">
-              <span class="font-mono text-sm font-bold text-foreground">{{ summarizeProductAgentPrice(row) }}</span>
+              <span class="font-mono text-sm font-bold text-success">{{ summarizeProductAgentPrice(row) }}</span>
               <Badge v-if="isProductAgentPriceRetail(row)" variant="neutral" size="xs">{{ t('personalCenter.reseller.productSettings.agentPriceRetail') }}</Badge>
             </div>
           </div>
@@ -81,9 +81,9 @@
             <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">{{ t('personalCenter.reseller.productSettings.effectivePrice') }}</div>
             <div class="mt-1 font-mono text-sm font-bold text-primary">{{ summarizeProductEffectivePrice(row) }}</div>
           </div>
-          <div class="rounded-lg border bg-muted/30 px-3 py-2">
-            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{{ t('personalCenter.reseller.productSettings.estimatedProfit') }}</div>
-            <div class="mt-1 font-mono text-sm font-bold text-foreground">{{ summarizeProductEstimatedProfit(row) }}</div>
+          <div class="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2">
+            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-destructive">{{ t('personalCenter.reseller.productSettings.estimatedProfit') }}</div>
+            <div class="mt-1 font-mono text-sm font-bold text-destructive">{{ summarizeProductEstimatedProfit(row) }}</div>
           </div>
           <div class="rounded-lg border bg-muted/30 px-3 py-2">
             <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{{ t('personalCenter.reseller.productSettings.listedSkuCount') }}</div>
