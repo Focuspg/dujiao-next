@@ -97,11 +97,17 @@ func ValidateUnitAmount(profile *resellerdomain.Profile, sku *productdomain.Prod
 	return nil
 }
 
-// IndexAgentPrices 按 SKU ID 索引分销商拿货价。
+// IndexAgentPrices 按 SKU ID 索引分销商拿货价：分销商单独设置的代理价优先，其次是统一代理价。
 func IndexAgentPrices(rows []resellerdomain.AgentPrice) map[uint]decimal.Decimal {
 	out := make(map[uint]decimal.Decimal, len(rows))
 	for _, row := range rows {
-		if row.SKUID == 0 {
+		if row.SKUID == 0 || row.ResellerID != resellerdomain.DefaultAgentPriceResellerID {
+			continue
+		}
+		out[row.SKUID] = row.PriceAmount.Decimal.Round(2)
+	}
+	for _, row := range rows {
+		if row.SKUID == 0 || row.ResellerID == resellerdomain.DefaultAgentPriceResellerID {
 			continue
 		}
 		out[row.SKUID] = row.PriceAmount.Decimal.Round(2)

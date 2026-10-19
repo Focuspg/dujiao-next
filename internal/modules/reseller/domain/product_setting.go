@@ -29,7 +29,11 @@ type ProductSetting struct {
 
 func (ProductSetting) TableName() string { return "reseller_product_settings" }
 
-// AgentPrice 后台给分销商单独设置的 SKU 拿货价（代理价）。
+// DefaultAgentPriceResellerID 统一代理价的作用域：reseller_id 为 0 的行对所有分销商生效，
+// 分销商单独设置的代理价优先于统一代理价。
+const DefaultAgentPriceResellerID uint = 0
+
+// AgentPrice 后台给分销商单独设置的 SKU 拿货价（代理价）；ResellerID 为 0 时是统一代理价。
 // 未设置时分销商按零售价拿货；分销利润 = 分站成交价 − 拿货价。
 type AgentPrice struct {
 	ID          uint         `gorm:"primarykey" json:"id"`

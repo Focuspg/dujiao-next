@@ -15,8 +15,13 @@ import (
 )
 
 func (r *Store) ListProductsWithSettings(filter resellercontract.ProductSettingListFilter) ([]resellercontract.ProductSettingProductRow, int64, error) {
-	if filter.ResellerID == 0 {
+	if filter.ResellerID == 0 && !filter.AllResellers {
 		return []resellercontract.ProductSettingProductRow{}, 0, nil
+	}
+	if filter.AllResellers {
+		filter.ResellerID = 0
+		filter.Configured = ""
+		filter.Listed = ""
 	}
 	query := r.db.Model(&productdomain.Product{}).
 		Where("products.deleted_at IS NULL").

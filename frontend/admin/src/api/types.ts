@@ -1110,6 +1110,7 @@ export interface AdminResellerAgentPriceSKU {
   price_amount: string
   cost_price_amount: string
   agent_price_amount?: string
+  default_agent_price_amount?: string
 }
 
 export interface AdminResellerAgentPriceProduct {

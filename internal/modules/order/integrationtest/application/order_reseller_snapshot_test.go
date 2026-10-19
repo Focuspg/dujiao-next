@@ -681,3 +681,36 @@ func TestCreateOrderResellerDirectChargeUsesAgentPrice(t *testing.T) {
 		t.Fatalf("reseller direct charge must stay single quantity, got %v", err)
 	}
 }
+
+func TestCreateOrderResellerUsesDefaultAgentPriceUnlessOverridden(t *testing.T) {
+	f := newOrderResellerSnapshotFixture(t)
+	product, sku := f.addResellerSnapshotProduct(t, "gpt-plus", decimal.NewFromInt(135), decimal.Zero, decimal.Zero)
+	defaultPrice := resellerdomain.AgentPrice{ResellerID: resellerdomain.DefaultAgentPriceResellerID, ProductID: product.ID, SKUID: sku.ID, PriceAmount: money.FromDecimal(decimal.NewFromInt(115))}
+	if err := f.db.Create(&defaultPrice).Error; err != nil {
+		t.Fatalf("create default agent price failed: %v", err)
+	}
+	input := CreateOrderInput{
+		UserID: f.buyer.ID,
+		Tenant: f.tenant,
+		Items:  []CreateOrderItem{{ProductID: product.ID, SKUID: sku.ID, Quantity: 1}},
+	}
+	order, err := f.svc.CreateOrder(input)
+	if err != nil {
+		t.Fatalf("CreateOrder with default agent price failed: %v", err)
+	}
+	if !order.TotalAmount.Decimal.Equal(decimal.NewFromInt(135)) || !order.ResellerProfitAmount.Decimal.Equal(decimal.NewFromInt(20)) {
+		t.Fatalf("expected total 135 profit 20 from default agent price, got total=%s profit=%s", order.TotalAmount.String(), order.ResellerProfitAmount.String())
+	}
+
+	own := resellerdomain.AgentPrice{ResellerID: f.profile.ID, ProductID: product.ID, SKUID: sku.ID, PriceAmount: money.FromDecimal(decimal.NewFromInt(110))}
+	if err := f.db.Create(&own).Error; err != nil {
+		t.Fatalf("create reseller agent price failed: %v", err)
+	}
+	order, err = f.svc.CreateOrder(input)
+	if err != nil {
+		t.Fatalf("CreateOrder with reseller agent price failed: %v", err)
+	}
+	if !order.ResellerProfitAmount.Decimal.Equal(decimal.NewFromInt(25)) {
+		t.Fatalf("reseller agent price must override default, expected profit 25 got %s", order.ResellerProfitAmount.String())
+	}
+}

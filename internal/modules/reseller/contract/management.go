@@ -84,6 +84,8 @@ type ProductSettingListFilter struct {
 	Configured string
 	Listed     string
 	OnlyActive bool
+	// AllResellers 为 true 时不限定分销商（统一代理价列表），忽略 Configured/Listed 筛选。
+	AllResellers bool
 }
 
 // ProductSettingAdminListFilter 后台分销商品配置列表过滤条件。

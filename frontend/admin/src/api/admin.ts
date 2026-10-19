@@ -532,6 +532,8 @@ export const adminAPI = {
     api.get(`/admin/resellers/profiles/${resellerId}/agent-prices`, { params }),
   updateResellerAgentPrices: (resellerId: number, data: AdminResellerAgentPriceUpdatePayload) =>
     api.put(`/admin/resellers/profiles/${resellerId}/agent-prices`, data),
+  getDefaultResellerAgentPrices: (params?: Record<string, unknown>) => api.get('/admin/resellers/agent-prices', { params }),
+  updateDefaultResellerAgentPrices: (data: AdminResellerAgentPriceUpdatePayload) => api.put('/admin/resellers/agent-prices', data),
   refundOrderToWallet: (id: number, data: AdminRefundToWalletPayload) =>
     api.post(`/admin/orders/${id}/refund-to-wallet`, data),
   manualRefundOrder: (id: number, data: AdminManualRefundPayload) =>
