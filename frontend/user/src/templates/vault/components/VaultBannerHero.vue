@@ -45,11 +45,11 @@
         </div>
 
         <div class="mt-auto max-w-[640px] space-y-2.5">
-          <span class="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-black/45 px-3 py-1 text-[12px] font-bold uppercase tracking-[0.04em] text-white backdrop-blur-sm">
+          <span v-if="heroBadge" class="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-black/45 px-3 py-1 text-[12px] font-bold uppercase tracking-[0.04em] text-white backdrop-blur-sm">
             <Zap class="h-3.5 w-3.5" /> {{ heroBadge }}
           </span>
-          <h2 class="text-xl font-extrabold leading-tight text-white sm:text-2xl md:text-[2rem]">{{ heroTitle }}</h2>
-          <p class="line-clamp-2 max-w-[52ch] text-sm leading-relaxed text-white/85 sm:text-base">{{ heroSubtitle }}</p>
+          <h2 v-if="heroTitle" class="text-xl font-extrabold leading-tight text-white sm:text-2xl md:text-[2rem]">{{ heroTitle }}</h2>
+          <p v-if="heroSubtitle" class="line-clamp-2 max-w-[52ch] text-sm leading-relaxed text-white/85 sm:text-base">{{ heroSubtitle }}</p>
 
           <div class="flex flex-wrap items-center gap-3 pt-1.5">
             <button

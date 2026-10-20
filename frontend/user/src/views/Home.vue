@@ -34,14 +34,14 @@
                 </button>
               </div>
               <div class="space-y-2 sm:space-y-3">
-                <span :class="heroBadgeClass">
+                <span v-if="heroBadge" :class="heroBadgeClass">
                   <span class="h-2 w-2 rounded-full bg-emerald-300"></span>
                   {{ heroBadge }}
                 </span>
-                <h1 class="max-w-4xl text-xl font-semibold tracking-[-0.02em] text-white sm:text-2xl md:text-3xl">
+                <h1 v-if="heroTitle" class="max-w-4xl text-xl font-semibold tracking-[-0.02em] text-white sm:text-2xl md:text-3xl">
                   {{ heroTitle }}
                 </h1>
-                <p class="max-w-3xl text-xs leading-relaxed text-gray-100 sm:text-sm">
+                <p v-if="heroSubtitle" class="max-w-3xl text-xs leading-relaxed text-gray-100 sm:text-sm">
                   {{ heroSubtitle }}
                 </p>
               </div>
@@ -176,7 +176,7 @@
 
             <div v-if="bannerLoading" class="relative flex min-h-[260px] flex-col justify-between p-5 sm:min-h-[320px] sm:p-6 md:min-h-[420px] md:p-12">
             <div class="mb-4 flex items-center justify-end">
-              <span :class="heroBadgeClass">
+              <span v-if="heroBadge" :class="heroBadgeClass">
                 {{ t('common.loading') }}
               </span>
             </div>
@@ -214,14 +214,14 @@
             </div>
 
             <div class="space-y-3 sm:space-y-4">
-              <span :class="heroBadgeClass">
+              <span v-if="heroBadge" :class="heroBadgeClass">
                 <span class="h-2 w-2 rounded-full bg-emerald-300"></span>
                 {{ heroBadge }}
               </span>
-              <h1 class="max-w-4xl text-2xl font-semibold tracking-[-0.02em] text-white sm:text-3xl md:text-[2.85rem]">
+              <h1 v-if="heroTitle" class="max-w-4xl text-2xl font-semibold tracking-[-0.02em] text-white sm:text-3xl md:text-[2.85rem]">
                 {{ heroTitle }}
               </h1>
-              <p class="max-w-3xl text-xs leading-relaxed text-gray-100 sm:text-sm md:text-base">
+              <p v-if="heroSubtitle" class="max-w-3xl text-xs leading-relaxed text-gray-100 sm:text-sm md:text-base">
                 {{ heroSubtitle }}
               </p>
             </div>
