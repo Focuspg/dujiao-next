@@ -7,6 +7,11 @@
       <section v-if="showHeroSection" class="relative z-10 border-b pt-24 pb-10">
         <div class="container mx-auto px-4">
           <div class="relative overflow-hidden rounded-2xl border bg-card"
+            :class="{ 'cursor-pointer': hasHeroLink }"
+            :role="hasHeroLink ? 'link' : undefined"
+            :tabindex="hasHeroLink ? 0 : undefined"
+            @click="hasHeroLink && goToHeroLink()"
+            @keydown.enter.self="hasHeroLink && goToHeroLink()"
             @touchstart="onBannerTouchStart"
             @touchend="onBannerTouchEnd">
             <Transition name="banner-fade" mode="out-in">
@@ -24,12 +29,12 @@
               <div v-if="bannerCount > 1" class="mb-3 flex items-center justify-end gap-2">
                 <button type="button"
                   class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white transition hover:bg-black/35 md:h-9 md:w-9"
-                  @click="handlePrevHeroBanner" :aria-label="t('common.previousBanner')">
+                  @click.stop="handlePrevHeroBanner" :aria-label="t('common.previousBanner')">
                   <ChevronLeft class="h-3.5 w-3.5" />
                 </button>
                 <button type="button"
                   class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white transition hover:bg-black/35 md:h-9 md:w-9"
-                  @click="handleNextHeroBanner" :aria-label="t('common.nextBanner')">
+                  @click.stop="handleNextHeroBanner" :aria-label="t('common.nextBanner')">
                   <ChevronRight class="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -49,7 +54,7 @@
                 <button v-for="(_, bIdx) in banners" :key="`list-dot-${bIdx}`" type="button"
                   class="h-2 rounded-full transition-all"
                   :class="bIdx === currentBannerIndex ? 'w-6 bg-white' : 'w-2 bg-white/45 hover:bg-white/70'"
-                  @click="selectHeroBanner(bIdx)"></button>
+                  @click.stop="selectHeroBanner(bIdx)"></button>
               </div>
             </div>
           </div>
@@ -166,6 +171,11 @@
     <section v-if="showHeroSection" class="relative z-10 border-b pt-24 pb-10">
       <div class="container mx-auto px-4">
         <div class="relative overflow-hidden rounded-2xl border bg-card"
+          :class="{ 'cursor-pointer': hasHeroLink }"
+          :role="hasHeroLink ? 'link' : undefined"
+          :tabindex="hasHeroLink ? 0 : undefined"
+          @click="hasHeroLink && goToHeroLink()"
+          @keydown.enter.self="hasHeroLink && goToHeroLink()"
           @touchstart="onBannerTouchStart"
           @touchend="onBannerTouchEnd">
           <!-- Banner image with fade transition -->
@@ -198,7 +208,7 @@
               <button
                 type="button"
                 class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white transition hover:bg-black/35 md:h-10 md:w-10"
-                @click="handlePrevHeroBanner"
+                @click.stop="handlePrevHeroBanner"
                 :aria-label="t('common.previousBanner')"
               >
                 <ChevronLeft class="h-4 w-4" />
@@ -206,7 +216,7 @@
               <button
                 type="button"
                 class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white transition hover:bg-black/35 md:h-10 md:w-10"
-                @click="handleNextHeroBanner"
+                @click.stop="handleNextHeroBanner"
                 :aria-label="t('common.nextBanner')"
               >
                 <ChevronRight class="h-4 w-4" />
@@ -226,7 +236,7 @@
               </p>
             </div>
 
-            <div class="flex flex-wrap items-center gap-3 pt-5 sm:pt-6">
+            <div v-if="!hasHeroLink" class="flex flex-wrap items-center gap-3 pt-5 sm:pt-6">
               <button
                 type="button"
                 @click="goToHeroLink"
@@ -251,7 +261,7 @@
                 type="button"
                 class="h-2.5 rounded-full transition-all"
                 :class="index === currentBannerIndex ? 'w-7 bg-white' : 'w-2.5 bg-white/45 hover:bg-white/70'"
-                @click="selectHeroBanner(index)"
+                @click.stop="selectHeroBanner(index)"
                 :aria-label="t('common.switchBanner', { n: index + 1 })"
               ></button>
             </div>

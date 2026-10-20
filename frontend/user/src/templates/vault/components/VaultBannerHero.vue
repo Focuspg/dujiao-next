@@ -2,6 +2,11 @@
   <section v-if="showHeroSection" class="mx-auto w-full max-w-[1180px] px-4 pt-6 sm:px-6">
     <div
       class="relative overflow-hidden rounded-lg border bg-card shadow-[var(--shadow)]"
+      :class="{ 'cursor-pointer': hasHeroLink }"
+      :role="hasHeroLink ? 'link' : undefined"
+      :tabindex="hasHeroLink ? 0 : undefined"
+      @click="hasHeroLink && goToHeroLink()"
+      @keydown.enter.self="hasHeroLink && goToHeroLink()"
       @touchstart="onBannerTouchStart"
       @touchend="onBannerTouchEnd"
     >
@@ -30,7 +35,7 @@
             type="button"
             class="grid h-9 w-9 place-items-center rounded-full border border-white/30 bg-black/25 text-white transition hover:bg-black/45"
             :aria-label="t('common.previousBanner')"
-            @click="handlePrevHeroBanner"
+            @click.stop="handlePrevHeroBanner"
           >
             <ChevronLeft class="h-4 w-4" />
           </button>
@@ -38,7 +43,7 @@
             type="button"
             class="grid h-9 w-9 place-items-center rounded-full border border-white/30 bg-black/25 text-white transition hover:bg-black/45"
             :aria-label="t('common.nextBanner')"
-            @click="handleNextHeroBanner"
+            @click.stop="handleNextHeroBanner"
           >
             <ChevronRight class="h-4 w-4" />
           </button>
@@ -51,7 +56,7 @@
           <h2 v-if="heroTitle" class="text-xl font-extrabold leading-tight text-white sm:text-2xl md:text-[2rem]">{{ heroTitle }}</h2>
           <p v-if="heroSubtitle" class="line-clamp-2 max-w-[52ch] text-sm leading-relaxed text-white/85 sm:text-base">{{ heroSubtitle }}</p>
 
-          <div class="flex flex-wrap items-center gap-3 pt-1.5">
+          <div v-if="!hasHeroLink" class="flex flex-wrap items-center gap-3 pt-1.5">
             <button
               type="button"
               class="inline-flex min-h-[40px] items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[color:var(--ink)] transition hover:scale-[1.03]"
@@ -71,7 +76,7 @@
             class="h-2 rounded-full transition-all"
             :class="idx === currentBannerIndex ? 'w-6 bg-white' : 'w-2 bg-white/45 hover:bg-white/70'"
             :aria-label="t('common.switchBanner', { n: idx + 1 })"
-            @click="selectHeroBanner(idx)"
+            @click.stop="selectHeroBanner(idx)"
           ></button>
         </div>
       </div>
@@ -98,6 +103,7 @@ const {
   heroTitle,
   heroSubtitle,
   heroPrimaryButtonText,
+  hasHeroLink,
   loadBanners,
   handleNextHeroBanner,
   handlePrevHeroBanner,
