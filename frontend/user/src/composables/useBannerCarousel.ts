@@ -4,11 +4,13 @@ import { useI18n } from 'vue-i18n'
 import { bannerAPI } from '../api'
 import { getImageUrl } from '../utils/image'
 import { useLocalized } from './useProduct'
+import { useAppStore } from '../stores/app'
 
 export function useBannerCarousel() {
   const router = useRouter()
   const { t } = useI18n()
   const { getLocalizedText } = useLocalized()
+  const appStore = useAppStore()
 
   const banners = ref<any[]>([])
   const bannerLoading = ref(true)
@@ -86,19 +88,20 @@ export function useBannerCarousel() {
     return getImageUrl(banner.image || banner.mobile_image || '')
   })
 
+  // 站长配置了 Banner 时只显示 Banner 自己的文案：留空表示图片本身已带文字，不再回落到默认文案。
   const heroBadge = computed(() => {
     if (!heroBanner.value) return t('home.hero.badge')
-    return getLocalizedText(heroBanner.value.title) || t('home.hero.badge')
+    return getLocalizedText(heroBanner.value.title)
   })
 
   const heroTitle = computed(() => {
-    if (!heroBanner.value) return t('home.hero.title')
-    return getLocalizedText(heroBanner.value.title) || t('home.hero.title')
+    if (!heroBanner.value) return String(appStore.config?.brand?.site_name || '').trim() || t('home.hero.title')
+    return getLocalizedText(heroBanner.value.title)
   })
 
   const heroSubtitle = computed(() => {
     if (!heroBanner.value) return t('home.hero.subtitle')
-    return getLocalizedText(heroBanner.value.subtitle) || t('home.hero.subtitle')
+    return getLocalizedText(heroBanner.value.subtitle)
   })
 
   const heroLink = computed(() => {
