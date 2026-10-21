@@ -385,6 +385,8 @@ const (
 	NotificationAlertTypeUpstreamBalanceLow = "upstream_balance_low"
 	// NotificationAlertTypeUpstreamBalanceQueryFailed 无法查询上游 ZovoCard 余额（不代表余额不足）
 	NotificationAlertTypeUpstreamBalanceQueryFailed = "upstream_balance_query_failed"
+	// NotificationTestSceneUpstreamBalanceAlert 测试发送专用场景：用 ZovoCard 余额不足示例渲染“异常告警”模板
+	NotificationTestSceneUpstreamBalanceAlert = "upstream_balance_alert"
 )
 
 // 队列常量

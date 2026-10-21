@@ -38,14 +38,19 @@ func (s *Service) SendTest(ctx context.Context, input contract.TestSendInput) er
 	if scene == "" {
 		scene = constants.NotificationEventExceptionAlert
 	}
-	template := setting.Templates.TemplateByEvent(scene).ResolveLocaleTemplate(format.ResolveLocale(input.Locale, setting.DefaultLocale))
+	// ZovoCard 余额告警属于异常告警，测试时套用异常告警模板
+	templateEvent := scene
+	if scene == constants.NotificationTestSceneUpstreamBalanceAlert {
+		templateEvent = constants.NotificationEventExceptionAlert
+	}
+	template := setting.Templates.TemplateByEvent(templateEvent).ResolveLocaleTemplate(format.ResolveLocale(input.Locale, setting.DefaultLocale))
 	variables := format.CloneVariables(input.Variables)
 	if variables == nil {
 		variables = map[string]interface{}{}
 	}
 	locale := format.ResolveLocale(input.Locale, setting.DefaultLocale)
 	format.ApplyTestVariables(variables, format.BuildTestVariables(scene, locale))
-	variables["event_type"] = scene
+	variables["event_type"] = templateEvent
 	variables["message"] = format.PickMessage(variables["message"], "test message")
 	title := format.RenderTemplate(template.Title, variables)
 	body := format.RenderTemplate(template.Body, variables)
