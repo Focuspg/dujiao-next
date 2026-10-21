@@ -3547,6 +3547,7 @@ const messages = {
             orderPaidSuccess: '订单支付成功通知',
             manualFulfillmentPending: '待人工交付订单提醒',
             exceptionAlert: '异常告警通知',
+            upstreamBalanceAlert: 'ZovoCard 余额告警（异常告警示例）',
             exceptionThresholdHint: '异常告警阈值沿用“仪表盘规则”：低库存阈值、缺货商品阈值、待支付订单阈值、支付失败阈值。库存告警、通知巡检中的待支付和支付失败告警使用上方独立频率设置。',
           },
           templates: {
@@ -8261,6 +8262,7 @@ const messages = {
             orderPaidSuccess: '訂單支付成功通知',
             manualFulfillmentPending: '待人工交付訂單提醒',
             exceptionAlert: '異常告警通知',
+            upstreamBalanceAlert: 'ZovoCard 餘額告警（異常告警範例）',
             exceptionThresholdHint: '異常告警閾值沿用「儀表板規則」：低庫存閾值、缺貨商品閾值、待支付訂單閾值、支付失敗閾值。庫存告警、通知巡檢中的待支付和支付失敗告警使用上方獨立頻率設定。',
           },
           templates: {
@@ -12975,6 +12977,7 @@ const messages = {
             orderPaidSuccess: 'Order payment succeeded',
             manualFulfillmentPending: 'Manual fulfillment pending',
             exceptionAlert: 'Exception alerts',
+            upstreamBalanceAlert: 'ZovoCard balance alert (exception alert sample)',
             exceptionThresholdHint: 'Exception alert thresholds reuse Dashboard Rules: low stock, out-of-stock products, pending orders, and payment failures. Inventory alerts, pending and failed payment alerts in the notification scheduler use the independent frequency setting above.',
           },
           templates: {

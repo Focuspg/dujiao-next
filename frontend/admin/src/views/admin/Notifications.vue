@@ -162,6 +162,7 @@ const testScenes = computed(() => [
   { value: 'order_paid_success', label: t('admin.settings.notification.scenes.orderPaidSuccess') },
   { value: 'manual_fulfillment_pending', label: t('admin.settings.notification.scenes.manualFulfillmentPending') },
   { value: 'exception_alert', label: t('admin.settings.notification.scenes.exceptionAlert') },
+  { value: 'upstream_balance_alert', label: t('admin.settings.notification.scenes.upstreamBalanceAlert') },
 ])
 
 const syncTestTarget = (force = false) => {
@@ -287,6 +288,7 @@ const notificationSceneLabel = (value: string) => {
     order_paid_success: 'admin.settings.notification.scenes.orderPaidSuccess',
     manual_fulfillment_pending: 'admin.settings.notification.scenes.manualFulfillmentPending',
     exception_alert: 'admin.settings.notification.scenes.exceptionAlert',
+    upstream_balance_alert: 'admin.settings.notification.scenes.upstreamBalanceAlert',
   }
   const key = keyMap[value]
   if (!key) return value || '-'

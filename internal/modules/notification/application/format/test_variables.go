@@ -5,6 +5,9 @@ import (
 	"strings"
 
 	"github.com/dujiao-next/internal/constants"
+	settingsmessaging "github.com/dujiao-next/internal/modules/settings/schema/messaging"
+	"github.com/dujiao-next/internal/queue"
+	"github.com/shopspring/decimal"
 )
 
 func PickMessage(value interface{}, fallback string) string {
@@ -60,6 +63,18 @@ func BuildTestVariables(scene, locale string) map[string]interface{} {
 			"fulfillment_items_summary": buildNotificationTestFulfillmentItems(locale),
 			"delivery_summary":          BuildDeliverySummary(locale, OrderItemCounts{Total: 2, Auto: 1, Manual: 1}),
 		}
+	case constants.NotificationTestSceneUpstreamBalanceAlert:
+		sample := BuildUpstreamBalanceLowDispatchPayload(
+			settingsmessaging.NotificationCenterSetting{DefaultLocale: locale},
+			queue.NotificationDispatchPayload{Locale: locale},
+			UpstreamBalanceAlertInput{
+				CardID:      525944,
+				Value:       decimal.RequireFromString("3.2"),
+				Threshold:   decimal.RequireFromString("5"),
+				RepeatHours: 6,
+			},
+		)
+		return sample.Data
 	default:
 		return map[string]interface{}{
 			"alert_type":             alertTypeLabelByType(locale, constants.NotificationAlertTypeLowStockProducts),

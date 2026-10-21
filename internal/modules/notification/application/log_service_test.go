@@ -514,3 +514,19 @@ func TestUpstreamBalanceAlertFormatting(t *testing.T) {
 		}
 	}
 }
+
+func TestUpstreamBalanceTestSceneUsesBalanceSample(t *testing.T) {
+	for locale, want := range map[string]string{
+		constants.LocaleZhCN: "ZovoCard 付款卡 ****5944 可用额度为 3.20 USD，低于告警阈值 5.00 USD",
+		constants.LocaleZhTW: "ZovoCard 付款卡 ****5944 可用額度為 3.20 USD，低於告警門檻 5.00 USD",
+		constants.LocaleEnUS: "ZovoCard funding card ****5944 available balance is 3.20 USD, below the alert threshold of 5.00 USD",
+	} {
+		vars := format.BuildTestVariables(constants.NotificationTestSceneUpstreamBalanceAlert, locale)
+		if vars["alert_type_key"] != constants.NotificationAlertTypeUpstreamBalanceLow {
+			t.Fatalf("%s: alert_type_key = %v", locale, vars["alert_type_key"])
+		}
+		if msg, _ := vars["message"].(string); !strings.Contains(msg, want) {
+			t.Fatalf("%s: message = %q", locale, msg)
+		}
+	}
+}
