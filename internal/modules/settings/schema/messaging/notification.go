@@ -10,6 +10,7 @@ import (
 	"github.com/dujiao-next/internal/constants"
 	settingsvalue "github.com/dujiao-next/internal/modules/settings/schema/value"
 	"github.com/dujiao-next/internal/shared/jsonmap"
+	"github.com/shopspring/decimal"
 )
 
 var ErrNotificationConfigInvalid = errors.New("notification config invalid")
@@ -49,6 +50,14 @@ const (
 	notificationPaymentOrderAlertCheckDefaultSeconds    = 86400
 	notificationPaymentOrderAlertCheckMinSeconds        = 60
 	notificationPaymentOrderAlertCheckMaxSeconds        = 604800
+
+	notificationUpstreamBalanceAlertCheckDefaultMinutes  = 30
+	notificationUpstreamBalanceAlertCheckMinMinutes      = 5
+	notificationUpstreamBalanceAlertCheckMaxMinutes      = 1440
+	notificationUpstreamBalanceAlertRepeatDefaultHours   = 6
+	notificationUpstreamBalanceAlertRepeatMinHours       = 1
+	notificationUpstreamBalanceAlertRepeatMaxHours       = 168
+	notificationUpstreamBalanceAlertThresholdMaxUSDValue = 1000000
 )
 
 // NotificationChannelSetting 通知渠道配置
@@ -113,6 +122,16 @@ type NotificationCenterSetting struct {
 	PaymentOrderAlertIntervalSeconds int                          `json:"payment_order_alert_interval_seconds"`
 	PaymentOrderAlertCheckSeconds    int                          `json:"payment_order_alert_check_interval_seconds"`
 	IgnoredProductIDs                []uint                       `json:"ignored_product_ids"`
+	// UpstreamBalanceAlertEnabled 是否巡检上游 ZovoCard 余额
+	UpstreamBalanceAlertEnabled bool `json:"upstream_balance_alert_enabled"`
+	// UpstreamBalanceAlertThresholdUSD 账户可消费余额告警阈值（美元，两位小数字符串）；空表示不检查
+	UpstreamBalanceAlertThresholdUSD string `json:"upstream_balance_alert_threshold_usd"`
+	// UpstreamCardBalanceAlertThresholdUSD 付款卡可用额度告警阈值（美元，两位小数字符串）；空表示不检查
+	UpstreamCardBalanceAlertThresholdUSD string `json:"upstream_card_balance_alert_threshold_usd"`
+	// UpstreamBalanceAlertCheckMinutes 查询上游余额的最小间隔（分钟）
+	UpstreamBalanceAlertCheckMinutes int `json:"upstream_balance_alert_check_interval_minutes"`
+	// UpstreamBalanceAlertRepeatHours 同一项余额持续不足（或持续查询失败）时的重复提醒间隔（小时）
+	UpstreamBalanceAlertRepeatHours int `json:"upstream_balance_alert_repeat_interval_hours"`
 }
 
 // NotificationCenterSettingPatch 通知中心配置补丁
@@ -126,6 +145,12 @@ type NotificationCenterSettingPatch struct {
 	PaymentOrderAlertIntervalSeconds *int                        `json:"payment_order_alert_interval_seconds"`
 	PaymentOrderAlertCheckSeconds    *int                        `json:"payment_order_alert_check_interval_seconds"`
 	IgnoredProductIDs                *[]uint                     `json:"ignored_product_ids"`
+	UpstreamBalanceAlertEnabled      *bool                       `json:"upstream_balance_alert_enabled"`
+	// UpstreamBalanceAlertThresholdUSD 金额字符串，如 "5.00"；空字符串表示不检查
+	UpstreamBalanceAlertThresholdUSD     *string `json:"upstream_balance_alert_threshold_usd"`
+	UpstreamCardBalanceAlertThresholdUSD *string `json:"upstream_card_balance_alert_threshold_usd"`
+	UpstreamBalanceAlertCheckMinutes     *int    `json:"upstream_balance_alert_check_interval_minutes"`
+	UpstreamBalanceAlertRepeatHours      *int    `json:"upstream_balance_alert_repeat_interval_hours"`
 }
 
 // NotificationChannelsPatch 通知渠道补丁
@@ -267,6 +292,8 @@ func NotificationCenterDefaultSetting() NotificationCenterSetting {
 		PaymentOrderAlertIntervalSeconds: notificationPaymentOrderAlertIntervalDefaultSeconds,
 		PaymentOrderAlertCheckSeconds:    notificationPaymentOrderAlertCheckDefaultSeconds,
 		IgnoredProductIDs:                []uint{},
+		UpstreamBalanceAlertCheckMinutes: notificationUpstreamBalanceAlertCheckDefaultMinutes,
+		UpstreamBalanceAlertRepeatHours:  notificationUpstreamBalanceAlertRepeatDefaultHours,
 	})
 }
 
@@ -284,6 +311,10 @@ func NormalizeNotificationCenterSetting(setting NotificationCenterSetting) Notif
 	setting.PaymentOrderAlertIntervalSeconds = NormalizeNotificationPaymentOrderAlertInterval(setting.PaymentOrderAlertIntervalSeconds)
 	setting.PaymentOrderAlertCheckSeconds = NormalizeNotificationPaymentOrderAlertCheck(setting.PaymentOrderAlertCheckSeconds)
 	setting.IgnoredProductIDs = normalizeNotificationIgnoredProductIDs(setting.IgnoredProductIDs)
+	setting.UpstreamBalanceAlertThresholdUSD = NormalizeNotificationUpstreamBalanceThreshold(setting.UpstreamBalanceAlertThresholdUSD)
+	setting.UpstreamCardBalanceAlertThresholdUSD = NormalizeNotificationUpstreamBalanceThreshold(setting.UpstreamCardBalanceAlertThresholdUSD)
+	setting.UpstreamBalanceAlertCheckMinutes = NormalizeNotificationUpstreamBalanceAlertCheckMinutes(setting.UpstreamBalanceAlertCheckMinutes)
+	setting.UpstreamBalanceAlertRepeatHours = NormalizeNotificationUpstreamBalanceAlertRepeatHours(setting.UpstreamBalanceAlertRepeatHours)
 	setting.Templates = normalizeNotificationTemplates(setting.Templates)
 	return setting
 }
@@ -386,11 +417,16 @@ func NotificationCenterSettingToMap(setting NotificationCenterSetting) map[strin
 			"manual_fulfillment_pending": notificationSceneTemplateToMap(normalized.Templates.ManualFulfillmentPending),
 			"exception_alert":            notificationSceneTemplateToMap(normalized.Templates.ExceptionAlert),
 		},
-		"dedupe_ttl_seconds":                         normalized.DedupeTTLSeconds,
-		"inventory_alert_interval_seconds":           normalized.InventoryAlertIntervalSeconds,
-		"payment_order_alert_interval_seconds":       normalized.PaymentOrderAlertIntervalSeconds,
-		"payment_order_alert_check_interval_seconds": normalized.PaymentOrderAlertCheckSeconds,
-		"ignored_product_ids":                        settingsvalue.CloneUintSlice(normalized.IgnoredProductIDs),
+		"dedupe_ttl_seconds":                            normalized.DedupeTTLSeconds,
+		"inventory_alert_interval_seconds":              normalized.InventoryAlertIntervalSeconds,
+		"payment_order_alert_interval_seconds":          normalized.PaymentOrderAlertIntervalSeconds,
+		"payment_order_alert_check_interval_seconds":    normalized.PaymentOrderAlertCheckSeconds,
+		"ignored_product_ids":                           settingsvalue.CloneUintSlice(normalized.IgnoredProductIDs),
+		"upstream_balance_alert_enabled":                normalized.UpstreamBalanceAlertEnabled,
+		"upstream_balance_alert_threshold_usd":          normalized.UpstreamBalanceAlertThresholdUSD,
+		"upstream_card_balance_alert_threshold_usd":     normalized.UpstreamCardBalanceAlertThresholdUSD,
+		"upstream_balance_alert_check_interval_minutes": normalized.UpstreamBalanceAlertCheckMinutes,
+		"upstream_balance_alert_repeat_interval_hours":  normalized.UpstreamBalanceAlertRepeatHours,
 	}
 }
 
@@ -431,6 +467,29 @@ func ApplyNotificationCenterSettingPatch(current NotificationCenterSetting, patc
 	}
 	if patch.IgnoredProductIDs != nil {
 		next.IgnoredProductIDs = settingsvalue.CloneUintSlice(*patch.IgnoredProductIDs)
+	}
+	if patch.UpstreamBalanceAlertEnabled != nil {
+		next.UpstreamBalanceAlertEnabled = *patch.UpstreamBalanceAlertEnabled
+	}
+	if patch.UpstreamBalanceAlertThresholdUSD != nil {
+		threshold, err := parseNotificationUpstreamBalanceThreshold(*patch.UpstreamBalanceAlertThresholdUSD)
+		if err != nil {
+			return NotificationCenterSetting{}, err
+		}
+		next.UpstreamBalanceAlertThresholdUSD = threshold
+	}
+	if patch.UpstreamCardBalanceAlertThresholdUSD != nil {
+		threshold, err := parseNotificationUpstreamBalanceThreshold(*patch.UpstreamCardBalanceAlertThresholdUSD)
+		if err != nil {
+			return NotificationCenterSetting{}, err
+		}
+		next.UpstreamCardBalanceAlertThresholdUSD = threshold
+	}
+	if patch.UpstreamBalanceAlertCheckMinutes != nil {
+		next.UpstreamBalanceAlertCheckMinutes = *patch.UpstreamBalanceAlertCheckMinutes
+	}
+	if patch.UpstreamBalanceAlertRepeatHours != nil {
+		next.UpstreamBalanceAlertRepeatHours = *patch.UpstreamBalanceAlertRepeatHours
 	}
 	if patch.Channels != nil {
 		if patch.Channels.Email != nil {
@@ -562,6 +621,11 @@ func DecodeNotificationCenterSetting(raw jsonmap.JSON, fallback NotificationCent
 	next.PaymentOrderAlertIntervalSeconds = settingsvalue.ReadInt(raw, "payment_order_alert_interval_seconds", settingsvalue.ReadInt(raw, "payment_failed_alert_interval_seconds", next.PaymentOrderAlertIntervalSeconds))
 	next.PaymentOrderAlertCheckSeconds = settingsvalue.ReadInt(raw, "payment_order_alert_check_interval_seconds", next.PaymentOrderAlertCheckSeconds)
 	next.IgnoredProductIDs = settingsvalue.ReadUintList(raw, "ignored_product_ids", next.IgnoredProductIDs)
+	next.UpstreamBalanceAlertEnabled = settingsvalue.ReadBool(raw, "upstream_balance_alert_enabled", next.UpstreamBalanceAlertEnabled)
+	next.UpstreamBalanceAlertThresholdUSD = readNotificationAmountText(raw, "upstream_balance_alert_threshold_usd", next.UpstreamBalanceAlertThresholdUSD)
+	next.UpstreamCardBalanceAlertThresholdUSD = readNotificationAmountText(raw, "upstream_card_balance_alert_threshold_usd", next.UpstreamCardBalanceAlertThresholdUSD)
+	next.UpstreamBalanceAlertCheckMinutes = settingsvalue.ReadInt(raw, "upstream_balance_alert_check_interval_minutes", next.UpstreamBalanceAlertCheckMinutes)
+	next.UpstreamBalanceAlertRepeatHours = settingsvalue.ReadInt(raw, "upstream_balance_alert_repeat_interval_hours", next.UpstreamBalanceAlertRepeatHours)
 
 	if channelsMap := settingsvalue.ToStringAnyMap(raw["channels"]); channelsMap != nil {
 		if emailMap := settingsvalue.ToStringAnyMap(channelsMap["email"]); emailMap != nil {
@@ -706,6 +770,94 @@ func NormalizeNotificationPaymentOrderAlertCheck(seconds int) int {
 		return notificationPaymentOrderAlertCheckDefaultSeconds
 	}
 	return seconds
+}
+
+// NormalizeNotificationUpstreamBalanceAlertCheckMinutes 归一化上游余额查询间隔（分钟）。
+func NormalizeNotificationUpstreamBalanceAlertCheckMinutes(minutes int) int {
+	if minutes < notificationUpstreamBalanceAlertCheckMinMinutes || minutes > notificationUpstreamBalanceAlertCheckMaxMinutes {
+		return notificationUpstreamBalanceAlertCheckDefaultMinutes
+	}
+	return minutes
+}
+
+// NormalizeNotificationUpstreamBalanceAlertRepeatHours 归一化上游余额告警重复提醒间隔（小时）。
+func NormalizeNotificationUpstreamBalanceAlertRepeatHours(hours int) int {
+	if hours < notificationUpstreamBalanceAlertRepeatMinHours || hours > notificationUpstreamBalanceAlertRepeatMaxHours {
+		return notificationUpstreamBalanceAlertRepeatDefaultHours
+	}
+	return hours
+}
+
+// NormalizeNotificationUpstreamBalanceThreshold 把阈值归一化为两位小数字符串；空、零或非法值归一为空（不检查）。
+func NormalizeNotificationUpstreamBalanceThreshold(value string) string {
+	threshold, err := parseNotificationUpstreamBalanceThreshold(value)
+	if err != nil {
+		return ""
+	}
+	return threshold
+}
+
+// UpstreamAccountBalanceThreshold 返回账户可消费余额告警阈值；未配置（空或零）时 ok 为 false。
+func (s NotificationCenterSetting) UpstreamAccountBalanceThreshold() (decimal.Decimal, bool) {
+	return upstreamBalanceThresholdValue(s.UpstreamBalanceAlertThresholdUSD)
+}
+
+// UpstreamCardBalanceThreshold 返回付款卡可用额度告警阈值；未配置（空或零）时 ok 为 false。
+func (s NotificationCenterSetting) UpstreamCardBalanceThreshold() (decimal.Decimal, bool) {
+	return upstreamBalanceThresholdValue(s.UpstreamCardBalanceAlertThresholdUSD)
+}
+
+func upstreamBalanceThresholdValue(value string) (decimal.Decimal, bool) {
+	normalized := NormalizeNotificationUpstreamBalanceThreshold(value)
+	if normalized == "" {
+		return decimal.Zero, false
+	}
+	threshold, err := decimal.NewFromString(normalized)
+	if err != nil || !threshold.IsPositive() {
+		return decimal.Zero, false
+	}
+	return threshold, true
+}
+
+// parseNotificationUpstreamBalanceThreshold 校验阈值输入：空或零返回空字符串（不检查），否则返回两位小数字符串。
+func parseNotificationUpstreamBalanceThreshold(value string) (string, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "", nil
+	}
+	threshold, err := decimal.NewFromString(trimmed)
+	if err != nil || threshold.IsNegative() || threshold.GreaterThan(decimal.NewFromInt(notificationUpstreamBalanceAlertThresholdMaxUSDValue)) {
+		return "", fmt.Errorf("%w: 上游余额告警阈值需为 0-%d 之间的美元金额", ErrNotificationConfigInvalid, notificationUpstreamBalanceAlertThresholdMaxUSDValue)
+	}
+	threshold = threshold.Round(2)
+	if threshold.IsZero() {
+		return "", nil
+	}
+	return threshold.StringFixed(2), nil
+}
+
+// readNotificationAmountText 读取金额字段，兼容字符串与数字两种存储形式。
+func readNotificationAmountText(source map[string]interface{}, key, fallback string) string {
+	value, ok := source[key]
+	if !ok {
+		return fallback
+	}
+	switch typed := value.(type) {
+	case nil:
+		return ""
+	case string:
+		return strings.TrimSpace(typed)
+	case float64:
+		return decimal.NewFromFloat(typed).String()
+	case int:
+		return decimal.NewFromInt(int64(typed)).String()
+	case int64:
+		return decimal.NewFromInt(typed).String()
+	case fmt.Stringer:
+		return strings.TrimSpace(typed.String())
+	default:
+		return fallback
+	}
 }
 
 func normalizeEmailRecipients(items []string) []string {

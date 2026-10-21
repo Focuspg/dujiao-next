@@ -27,6 +27,11 @@ interface NotificationData {
   payment_order_alert_interval_seconds: number
   payment_order_alert_check_interval_seconds: number
   ignored_product_ids_text: string
+  upstream_balance_alert_enabled: boolean
+  upstream_balance_alert_threshold_usd: string
+  upstream_card_balance_alert_threshold_usd: string
+  upstream_balance_alert_check_interval_minutes: number
+  upstream_balance_alert_repeat_interval_hours: number
   channels: {
     email: {
       enabled: boolean
@@ -98,6 +103,11 @@ const form = reactive({
   payment_order_alert_interval_seconds: 1800,
   payment_order_alert_check_interval_seconds: 86400,
   ignored_product_ids_text: '',
+  upstream_balance_alert_enabled: false,
+  upstream_balance_alert_threshold_usd: '',
+  upstream_card_balance_alert_threshold_usd: '',
+  upstream_balance_alert_check_interval_minutes: 30,
+  upstream_balance_alert_repeat_interval_hours: 6,
   channels: {
     email: {
       enabled: false,
@@ -137,6 +147,11 @@ const syncFromProps = () => {
   form.payment_order_alert_interval_seconds = props.data.payment_order_alert_interval_seconds
   form.payment_order_alert_check_interval_seconds = props.data.payment_order_alert_check_interval_seconds
   form.ignored_product_ids_text = props.data.ignored_product_ids_text
+  form.upstream_balance_alert_enabled = props.data.upstream_balance_alert_enabled
+  form.upstream_balance_alert_threshold_usd = props.data.upstream_balance_alert_threshold_usd
+  form.upstream_card_balance_alert_threshold_usd = props.data.upstream_card_balance_alert_threshold_usd
+  form.upstream_balance_alert_check_interval_minutes = props.data.upstream_balance_alert_check_interval_minutes
+  form.upstream_balance_alert_repeat_interval_hours = props.data.upstream_balance_alert_repeat_interval_hours
   form.channels.email.enabled = props.data.channels.email.enabled
   form.channels.email.recipients_text = props.data.channels.email.recipients_text
   form.channels.telegram.enabled = props.data.channels.telegram.enabled
@@ -272,6 +287,11 @@ const save = async () => {
       payment_order_alert_interval_seconds: Number(form.payment_order_alert_interval_seconds),
       payment_order_alert_check_interval_seconds: Number(form.payment_order_alert_check_interval_seconds),
       ignored_product_ids: splitNumericIDs(form.ignored_product_ids_text),
+      upstream_balance_alert_enabled: form.upstream_balance_alert_enabled,
+      upstream_balance_alert_threshold_usd: String(form.upstream_balance_alert_threshold_usd ?? '').trim(),
+      upstream_card_balance_alert_threshold_usd: String(form.upstream_card_balance_alert_threshold_usd ?? '').trim(),
+      upstream_balance_alert_check_interval_minutes: Number(form.upstream_balance_alert_check_interval_minutes),
+      upstream_balance_alert_repeat_interval_hours: Number(form.upstream_balance_alert_repeat_interval_hours),
       channels: {
         email: {
           enabled: form.channels.email.enabled,
@@ -408,6 +428,55 @@ defineExpose({ save, submitting })
               <label class="text-xs font-medium text-muted-foreground">{{ t('admin.settings.notification.paymentOrder.intervalSeconds') }}</label>
               <Input v-model.number="form.payment_order_alert_interval_seconds" type="number" min="60" max="604800" />
               <p class="text-xs text-muted-foreground">{{ t('admin.settings.notification.paymentOrder.intervalHint') }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-border bg-muted/20 p-4">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 class="text-sm font-semibold">{{ t('admin.settings.notification.upstreamBalance.title') }}</h3>
+              <p class="mt-1 text-xs text-muted-foreground">{{ t('admin.settings.notification.upstreamBalance.description') }}</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <Switch v-model="form.upstream_balance_alert_enabled" />
+              <Label class="text-sm">{{ t('admin.settings.notification.upstreamBalance.enabled') }}</Label>
+            </div>
+          </div>
+          <div class="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div class="space-y-2">
+              <label class="text-xs font-medium text-muted-foreground">{{ t('admin.settings.notification.upstreamBalance.accountThreshold') }}</label>
+              <Input
+                v-model="form.upstream_balance_alert_threshold_usd"
+                type="number"
+                min="0"
+                step="0.01"
+                inputmode="decimal"
+                :placeholder="t('admin.settings.notification.upstreamBalance.thresholdPlaceholder')"
+              />
+              <p class="text-xs text-muted-foreground">{{ t('admin.settings.notification.upstreamBalance.accountThresholdHint') }}</p>
+            </div>
+            <div class="space-y-2">
+              <label class="text-xs font-medium text-muted-foreground">{{ t('admin.settings.notification.upstreamBalance.cardThreshold') }}</label>
+              <Input
+                v-model="form.upstream_card_balance_alert_threshold_usd"
+                type="number"
+                min="0"
+                step="0.01"
+                inputmode="decimal"
+                :placeholder="t('admin.settings.notification.upstreamBalance.thresholdPlaceholder')"
+              />
+              <p class="text-xs text-muted-foreground">{{ t('admin.settings.notification.upstreamBalance.cardThresholdHint') }}</p>
+            </div>
+            <div class="space-y-2">
+              <label class="text-xs font-medium text-muted-foreground">{{ t('admin.settings.notification.upstreamBalance.checkIntervalMinutes') }}</label>
+              <Input v-model.number="form.upstream_balance_alert_check_interval_minutes" type="number" min="5" max="1440" />
+              <p class="text-xs text-muted-foreground">{{ t('admin.settings.notification.upstreamBalance.checkIntervalHint') }}</p>
+            </div>
+            <div class="space-y-2">
+              <label class="text-xs font-medium text-muted-foreground">{{ t('admin.settings.notification.upstreamBalance.repeatIntervalHours') }}</label>
+              <Input v-model.number="form.upstream_balance_alert_repeat_interval_hours" type="number" min="1" max="168" />
+              <p class="text-xs text-muted-foreground">{{ t('admin.settings.notification.upstreamBalance.repeatIntervalHint') }}</p>
             </div>
           </div>
         </div>

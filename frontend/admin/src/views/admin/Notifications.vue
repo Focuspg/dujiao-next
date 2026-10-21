@@ -50,6 +50,11 @@ const notificationData = reactive({
   payment_order_alert_interval_seconds: 1800,
   payment_order_alert_check_interval_seconds: 86400,
   ignored_product_ids_text: '',
+  upstream_balance_alert_enabled: false,
+  upstream_balance_alert_threshold_usd: '',
+  upstream_card_balance_alert_threshold_usd: '',
+  upstream_balance_alert_check_interval_minutes: 30,
+  upstream_balance_alert_repeat_interval_hours: 6,
   channels: {
     email: {
       enabled: false,
@@ -181,6 +186,11 @@ const fetchSettings = async () => {
     notificationData.payment_order_alert_interval_seconds = normalizeNumber(notification.payment_order_alert_interval_seconds ?? notification.payment_failed_alert_interval_seconds, 1800)
     notificationData.payment_order_alert_check_interval_seconds = normalizeNumber(notification.payment_order_alert_check_interval_seconds, 86400)
     notificationData.ignored_product_ids_text = joinNumericLines(notification.ignored_product_ids)
+    notificationData.upstream_balance_alert_enabled = !!notification.upstream_balance_alert_enabled
+    notificationData.upstream_balance_alert_threshold_usd = String(notification.upstream_balance_alert_threshold_usd ?? '')
+    notificationData.upstream_card_balance_alert_threshold_usd = String(notification.upstream_card_balance_alert_threshold_usd ?? '')
+    notificationData.upstream_balance_alert_check_interval_minutes = normalizeNumber(notification.upstream_balance_alert_check_interval_minutes, 30)
+    notificationData.upstream_balance_alert_repeat_interval_hours = normalizeNumber(notification.upstream_balance_alert_repeat_interval_hours, 6)
 
     const notifChannels = notification.channels as Record<string, Record<string, unknown>> | undefined
     const notifEmail = notifChannels?.email

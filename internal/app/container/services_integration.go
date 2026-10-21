@@ -182,6 +182,8 @@ func (c *Container) newDirectChargeService() *directchargeapp.Service {
 	options.Enabled = true
 	options.Vault = vault
 	options.Upstream = directchargeupstream.New(client, cfg.ZovoCard.WebhookSecret)
+	// 通知中心“异常告警”巡检 ZovoCard 账户余额与付款卡额度；ZovoCard 未配置时不装配，巡检自动跳过
+	c.NotificationService.SetUpstreamBalanceReader(directchargenotification.NewBalanceReader(client, c.DirectChargeStore))
 	options.Orders = directchargeorder.New(c.OrderService, c.OrderStore, c.FulfillmentService).
 		WithRefunds(c.OrderRefundService, func(payload queue.OrderStatusEmailPayload) error {
 			if c.QueueClient == nil {

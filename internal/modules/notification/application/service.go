@@ -19,6 +19,9 @@ type Service struct {
 	logService     *LogService
 	telegramSender contract.TelegramSender
 	feishuSender   contract.FeishuSender
+	// upstreamBalance 上游余额读取端口；未配置供应商时为 nil
+	upstreamBalance contract.UpstreamBalanceReader
+	alertLocks      alertLockStore
 }
 
 // NewService 创建通知中心服务。
@@ -39,7 +42,16 @@ func NewService(
 		logService:     logService,
 		telegramSender: telegramSender,
 		feishuSender:   feishuSender,
+		alertLocks:     newCacheAlertLocks(),
 	}
+}
+
+// SetUpstreamBalanceReader 装配上游余额读取端口；传 nil 表示不巡检上游余额。
+func (s *Service) SetUpstreamBalanceReader(reader contract.UpstreamBalanceReader) {
+	if s == nil {
+		return
+	}
+	s.upstreamBalance = reader
 }
 
 // Enqueue 入队通知任务
