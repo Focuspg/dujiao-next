@@ -381,6 +381,10 @@ const (
 	NotificationAlertTypeLowStockProducts   = "low_stock_products"
 	NotificationAlertTypePendingOrders      = "pending_payment_orders"
 	NotificationAlertTypePaymentsFailed     = "payments_failed"
+	// NotificationAlertTypeUpstreamBalanceLow 上游 ZovoCard 账户可消费余额或付款卡可用额度低于阈值
+	NotificationAlertTypeUpstreamBalanceLow = "upstream_balance_low"
+	// NotificationAlertTypeUpstreamBalanceQueryFailed 无法查询上游 ZovoCard 余额（不代表余额不足）
+	NotificationAlertTypeUpstreamBalanceQueryFailed = "upstream_balance_query_failed"
 )
 
 // 队列常量

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dujiao-next/internal/cache"
@@ -119,3 +120,50 @@ func resolvePaymentOrderAlertTypeKey(data map[string]interface{}) string {
 	}
 	return ""
 }
+
+// alertLockStore 告警间隔锁：Acquire 在键不存在时占用并设置过期，Release 提前释放。
+type alertLockStore interface {
+	Acquire(ctx context.Context, key string, ttl time.Duration) (bool, error)
+	Release(ctx context.Context, key string) error
+}
+
+// cacheAlertLocks 优先使用 Redis；Redis 未启用时退回进程内锁，避免每分钟巡检都重复查询上游与发信。
+type cacheAlertLocks struct {
+	mu    sync.Mutex
+	local map[string]time.Time
+	now   func() time.Time
+}
+
+func newCacheAlertLocks() *cacheAlertLocks {
+	return &cacheAlertLocks{local: map[string]time.Time{}, now: time.Now}
+}
+
+func (l *cacheAlertLocks) Acquire(ctx context.Context, key string, ttl time.Duration) (bool, error) {
+	if cache.Enabled() {
+		return cache.SetNX(ctx, key, "1", ttl)
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	now := l.now()
+	if expiresAt, ok := l.local[key]; ok && now.Before(expiresAt) {
+		return false, nil
+	}
+	l.local[key] = now.Add(ttl)
+	return true, nil
+}
+
+func (l *cacheAlertLocks) Release(ctx context.Context, key string) error {
+	if cache.Enabled() {
+		return cache.Del(ctx, key)
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	delete(l.local, key)
+	return nil
+}
+
+const (
+	upstreamBalanceCheckLockKey      = "notification:upstream_balance:check"
+	upstreamBalanceLowLockPrefix     = "notification:upstream_balance:low:"
+	upstreamBalanceFailureLockPrefix = "notification:upstream_balance:query_failed:"
+)

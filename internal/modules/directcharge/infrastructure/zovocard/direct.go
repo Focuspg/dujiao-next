@@ -87,6 +87,44 @@ func (c *Client) GetBalance(ctx context.Context) (*Balance, error) {
 	return &out, nil
 }
 
+// Card 付款卡（GET /cards/{id}）。AvailableAmount 为美元可用额度；
+// BalanceStale 为 true 表示上游尚未刷新，余额可能不是最新值。
+type Card struct {
+	ID              int64           `json:"id"`
+	AvailableAmount json.Number     `json:"available_amount"`
+	BalanceStale    bool            `json:"balance_stale"`
+	BalanceAsOf     json.RawMessage `json:"balance_as_of"`
+}
+
+// BalanceAsOfText 返回 balance_as_of 的文本形式：字符串去掉引号，null 或缺失返回空字符串
+func (c Card) BalanceAsOfText() string {
+	raw := strings.TrimSpace(string(c.BalanceAsOf))
+	if raw == "" || raw == "null" {
+		return ""
+	}
+	var text string
+	if err := json.Unmarshal(c.BalanceAsOf, &text); err == nil {
+		return strings.TrimSpace(text)
+	}
+	return raw
+}
+
+// GetCard GET /cards/{id}
+func (c *Client) GetCard(ctx context.Context, id int64) (*Card, error) {
+	if id <= 0 {
+		return nil, errors.New("zovocard: card id is required")
+	}
+	r, err := c.do(ctx, http.MethodGet, "/cards/"+strconv.FormatInt(id, 10), nil, nil, "")
+	if err != nil {
+		return nil, err
+	}
+	var out Card
+	if err := decodeData(r, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // PlanConfig plans 中的一档（ACC 执行层定价配置）
 type PlanConfig struct {
 	Key                 string `json:"key"`

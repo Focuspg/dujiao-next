@@ -234,3 +234,54 @@ func TestCredentialIsRedactedWhenFormatted(t *testing.T) {
 		}
 	}
 }
+
+func TestGetBalanceAndCard(t *testing.T) {
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("unexpected method %s", r.Method)
+		}
+		switch r.URL.Path {
+		case "/openapi/v1/balance":
+			writeJSON(w, 200, `{"code":0,"msg":"ok","data":{"balance":"52.30","spendable_balance":"50.15","account_reserve_amount":"2.15","currency":"USD"}}`)
+		case "/openapi/v1/cards/525944":
+			writeJSON(w, 200, `{"code":0,"msg":"ok","data":{"id":525944,"available_amount":"12.34","balance_stale":true,"balance_as_of":"2026-10-21T08:00:00Z"}}`)
+		case "/openapi/v1/cards/7":
+			writeJSON(w, 200, `{"code":0,"msg":"ok","data":{"id":7,"available_amount":3,"balance_stale":false,"balance_as_of":null}}`)
+		case "/openapi/v1/cards/404":
+			writeJSON(w, 404, `{"code":404,"msg":"card not found","error_code":"CARD_NOT_FOUND"}`)
+		default:
+			t.Errorf("unexpected path %s", r.URL.Path)
+		}
+	})
+	ctx := context.Background()
+	balance, err := c.GetBalance(ctx)
+	if err != nil {
+		t.Fatalf("balance: %v", err)
+	}
+	if balance.SpendableBalance.String() != "50.15" || balance.Currency != "USD" {
+		t.Fatalf("balance = %+v", balance)
+	}
+
+	card, err := c.GetCard(ctx, 525944)
+	if err != nil {
+		t.Fatalf("card: %v", err)
+	}
+	if card.ID != 525944 || card.AvailableAmount.String() != "12.34" || !card.BalanceStale || card.BalanceAsOfText() != "2026-10-21T08:00:00Z" {
+		t.Fatalf("card = %+v as_of=%q", card, card.BalanceAsOfText())
+	}
+
+	card, err = c.GetCard(ctx, 7)
+	if err != nil {
+		t.Fatalf("numeric card: %v", err)
+	}
+	if card.AvailableAmount.String() != "3" || card.BalanceStale || card.BalanceAsOfText() != "" {
+		t.Fatalf("numeric card = %+v", card)
+	}
+
+	if _, err := c.GetCard(ctx, 404); err == nil {
+		t.Fatal("missing card must return error")
+	}
+	if _, err := c.GetCard(ctx, 0); err == nil {
+		t.Fatal("zero card id must be rejected locally")
+	}
+}

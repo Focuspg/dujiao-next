@@ -12,6 +12,7 @@ import (
 	"github.com/dujiao-next/internal/shared/jsonmap"
 	"github.com/dujiao-next/internal/shared/mailbrand"
 	"github.com/dujiao-next/internal/shared/money"
+	"github.com/shopspring/decimal"
 )
 
 type SettingsReader interface {
@@ -49,6 +50,33 @@ type DashboardAlertReader interface {
 	LoadDashboardAlertSetting() settingsstorefront.DashboardAlertSetting
 	GetInventoryAlertItems(ctx context.Context, lowStockThreshold int64) ([]dashboardcontract.InventoryAlertRow, error)
 	GetPaymentOrderAlertCounts(ctx context.Context, startAt, endAt time.Time) (dashboardcontract.PaymentOrderAlertCountsRow, error)
+}
+
+// UpstreamAccountBalance 上游供应商（ZovoCard）账户余额快照，金额单位为美元。
+type UpstreamAccountBalance struct {
+	// Spendable 可消费余额，下单只看这个值
+	Spendable decimal.Decimal
+	// Balance 账面余额（含保证金）
+	Balance  decimal.Decimal
+	Currency string
+}
+
+// UpstreamCardBalance 上游付款卡可用额度快照，金额单位为美元。
+type UpstreamCardBalance struct {
+	CardID    int64
+	Available decimal.Decimal
+	// Stale 上游标记余额尚未刷新，可能不是最新值
+	Stale bool
+	// AsOf 上游给出的余额时间，原样展示
+	AsOf string
+}
+
+// UpstreamBalanceReader 读取上游供应商余额；供应商未配置时不装配（nil），巡检直接跳过。
+type UpstreamBalanceReader interface {
+	AccountBalance(ctx context.Context) (UpstreamAccountBalance, error)
+	// MonitoredCardIDs 返回需要巡检的付款卡 ID（已启用代充规格引用的卡，去重、升序）
+	MonitoredCardIDs(ctx context.Context) ([]int64, error)
+	CardBalance(ctx context.Context, cardID int64) (UpstreamCardBalance, error)
 }
 
 type TelegramSender interface {

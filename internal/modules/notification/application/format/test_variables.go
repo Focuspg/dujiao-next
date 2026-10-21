@@ -70,6 +70,13 @@ func BuildTestVariables(scene, locale string) map[string]interface{} {
 			"affected_items_count":   "2",
 			"affected_product_count": "2",
 			"affected_items_summary": buildNotificationTestInventoryItems(locale),
+			// 上游余额告警变量：自定义异常告警模板引用时测试发送也能渲染
+			"upstream_provider":          "ZovoCard",
+			"upstream_balance_target":    upstreamBalanceTargetLabel(locale, 525944),
+			"upstream_card_id_masked":    MaskUpstreamCardID(525944),
+			"upstream_balance_value":     "3.20 USD",
+			"upstream_balance_threshold": "5.00 USD",
+			"upstream_balance_stale":     "false",
 			"message": localizedNotificationText(
 				locale,
 				"检测到 2 个低库存商品，涉及 2 个具体库存项；本类告警最短 30 分钟发送一次。",
