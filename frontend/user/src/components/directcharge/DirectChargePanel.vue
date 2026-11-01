@@ -21,6 +21,8 @@
         </button>
       </div>
 
+      <DirectChargeAutoFill ref="autoFill" :disabled="verifying" @fill="onAutoFill" @error="onAutoFillError" />
+
       <div class="space-y-2">
         <div class="flex items-center justify-between">
           <label for="direct-charge-credential" class="text-sm font-medium text-foreground">{{ t('directCharge.credentialLabel') }}</label>
@@ -43,6 +45,7 @@
           class="font-mono text-xs break-all"
           :class="{ 'credential-masked': !revealed }"
           :disabled="verifying"
+          @paste="autoFill?.handlePaste($event)"
         />
         <p class="text-xs text-muted-foreground">{{ t(`directCharge.credentialHint.${mode}`) }}</p>
         <p class="flex items-start gap-1 text-xs text-muted-foreground">
@@ -109,6 +112,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { directChargeAPI, type DirectChargeMode, type DirectChargePreflight } from '../../api/directCharge'
 import { credentialTooLong, preflightMinutesLeft } from '../../utils/directCharge'
+import DirectChargeAutoFill from './DirectChargeAutoFill.vue'
 
 const props = defineProps<{
   skuId: number | null
@@ -138,6 +142,18 @@ onUnmounted(() => {
 const minutesLeft = computed(() => preflightMinutesLeft(preflight.value?.expires_at, now.value))
 
 watch(() => props.skuId, () => reset())
+
+const autoFill = ref<InstanceType<typeof DirectChargeAutoFill> | null>(null)
+
+const onAutoFill = (value: DirectChargeMode, text: string) => {
+  mode.value = value
+  credential.value = text
+  error.value = ''
+}
+
+const onAutoFillError = (message: string) => {
+  error.value = message
+}
 
 const reset = () => {
   preflight.value = null

@@ -1779,7 +1779,16 @@
     "tooLong": "凭据内容过长",
     "required": "请填写账号凭据",
     "skuRequired": "请先选择套餐",
-    "loginRequired": "登录后才能购买代充套餐"
+    "loginRequired": "登录后才能购买代充套餐",
+    "autoFill": {
+      "steps": "一键填充：先在本浏览器登录 chatgpt.com，点「打开 ChatGPT 获取」，在打开的页面全选并复制内容，回到这里点「一键粘贴」。",
+      "open": "打开 ChatGPT 获取",
+      "paste": "一键粘贴",
+      "notLoggedIn": "没有检测到 ChatGPT 登录信息，请先在本浏览器登录 chatgpt.com，再重新打开获取页面复制。",
+      "clipboardUnavailable": "无法读取剪贴板，请允许浏览器访问剪贴板，或直接粘贴到下方输入框。",
+      "empty": "剪贴板是空的，请先在 ChatGPT 获取页面全选并复制内容。",
+      "unrecognized": "没有识别出 ChatGPT 凭据，请确认复制的是获取页面的完整内容。"
+    }
   },
   "directChargeOrder": {
     "title": "充值进度",

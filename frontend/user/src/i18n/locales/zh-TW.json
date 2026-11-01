@@ -1779,7 +1779,16 @@
     "tooLong": "憑證內容過長",
     "required": "請填寫帳號憑證",
     "skuRequired": "請先選擇方案",
-    "loginRequired": "登入後才能購買代充方案"
+    "loginRequired": "登入後才能購買代充方案",
+    "autoFill": {
+      "steps": "一鍵填入：先在本瀏覽器登入 chatgpt.com，點「開啟 ChatGPT 取得」，在開啟的頁面全選並複製內容，回到這裡點「一鍵貼上」。",
+      "open": "開啟 ChatGPT 取得",
+      "paste": "一鍵貼上",
+      "notLoggedIn": "沒有偵測到 ChatGPT 登入資訊，請先在本瀏覽器登入 chatgpt.com，再重新開啟取得頁面複製。",
+      "clipboardUnavailable": "無法讀取剪貼簿，請允許瀏覽器存取剪貼簿，或直接貼到下方輸入框。",
+      "empty": "剪貼簿是空的，請先在 ChatGPT 取得頁面全選並複製內容。",
+      "unrecognized": "沒有識別出 ChatGPT 憑據，請確認複製的是取得頁面的完整內容。"
+    }
   },
   "directChargeOrder": {
     "title": "充值進度",

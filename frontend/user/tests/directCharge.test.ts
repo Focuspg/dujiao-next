@@ -6,6 +6,7 @@ import {
   directChargeShouldPoll,
   directChargeStatusTone,
   isDirectChargeProduct,
+  parseChatGPTCredential,
   preflightMinutesLeft,
 } from '../src/utils/directCharge.ts'
 
@@ -39,4 +40,30 @@ test('status tone and polling', () => {
   assert.equal(directChargeShouldPoll('processing'), true)
   assert.equal(directChargeShouldPoll('pending_payment'), false)
   assert.equal(directChargeShouldPoll('succeeded'), false)
+})
+
+test('chatgpt session json with sessionToken is submitted as session', () => {
+  const raw = '{"user":{"id":"u"},"accessToken":"eyJa.b.c","sessionToken":"eyJa.b.c.d.e"}'
+  assert.deepEqual(parseChatGPTCredential(` ${raw}\n`), { kind: 'session', credential: raw })
+})
+
+test('chatgpt session json without sessionToken falls back to access token', () => {
+  assert.deepEqual(parseChatGPTCredential('{"user":{"id":"u"},"accessToken":" eyJa.b.c "}'), { kind: 'access_token', credential: 'eyJa.b.c' })
+})
+
+test('empty chatgpt session json means not logged in', () => {
+  assert.deepEqual(parseChatGPTCredential('{}'), { kind: 'not_logged_in' })
+  assert.deepEqual(parseChatGPTCredential('{"WARNING_BANNER":"x"}'), { kind: 'not_logged_in' })
+})
+
+test('raw tokens are detected by segment count', () => {
+  assert.deepEqual(parseChatGPTCredential('eyJa.b.c.d.e'), { kind: 'session', credential: 'eyJa.b.c.d.e' })
+  assert.deepEqual(parseChatGPTCredential('eyJa.b.c'), { kind: 'access_token', credential: 'eyJa.b.c' })
+})
+
+test('unrecognized content is left for manual handling', () => {
+  assert.deepEqual(parseChatGPTCredential(''), { kind: 'unrecognized' })
+  assert.deepEqual(parseChatGPTCredential('{not json'), { kind: 'unrecognized' })
+  assert.deepEqual(parseChatGPTCredential('[]'), { kind: 'unrecognized' })
+  assert.deepEqual(parseChatGPTCredential('hello world'), { kind: 'unrecognized' })
 })
