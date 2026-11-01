@@ -1758,7 +1758,7 @@
     "credentialLabel": "账号凭据",
     "credentialPlaceholder": "粘贴凭据内容，仅用于本次充值",
     "credentialHint": {
-      "session": "登录 chatgpt.com 后，复制名为 __Secure-next-auth.session-token 的 Cookie 值，或包含 sessionToken 的完整 JSON。",
+      "session": "登录 chatgpt.com 后，打开 chatgpt.com/api/auth/session，全选并复制页面上的全部内容，粘贴到这里。",
       "access_token": "复制登录 chatgpt.com 后获取的 Access Token（以 eyJ 开头）。Access Token 有效期较短，请尽快完成付款。"
     },
     "privacy": "凭据加密保存，充值完成或订单关闭后销毁；本站不会索要账号密码。",
