@@ -1779,7 +1779,16 @@
     "tooLong": "The credential is too long",
     "required": "Please enter the account credential",
     "skuRequired": "Please select a plan first",
-    "loginRequired": "Sign in to buy a top-up plan"
+    "loginRequired": "Sign in to buy a top-up plan",
+    "autoFill": {
+      "steps": "Quick fill: sign in to chatgpt.com in this browser, click \"Open ChatGPT\", select all and copy the page content, then come back and click \"Paste\".",
+      "open": "Open ChatGPT",
+      "paste": "Paste",
+      "notLoggedIn": "No ChatGPT sign-in detected. Sign in to chatgpt.com in this browser first, then open the page again and copy it.",
+      "clipboardUnavailable": "Cannot read the clipboard. Allow clipboard access in your browser, or paste into the box below.",
+      "empty": "The clipboard is empty. Select all and copy the content of the ChatGPT page first.",
+      "unrecognized": "No ChatGPT credential recognized. Make sure you copied the full content of the page."
+    }
   },
   "directChargeOrder": {
     "title": "Top-up progress",
